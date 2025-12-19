@@ -16,6 +16,9 @@ public class RoleService {
     }
 
     public Role createRole(Role role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Role cannot be null");
+        }
         return roleRepository.save(role);
     }
 
