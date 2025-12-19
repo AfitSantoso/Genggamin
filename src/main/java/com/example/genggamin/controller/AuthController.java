@@ -1,5 +1,6 @@
 // penambahan auth controller untuk handle login
 package com.example.genggamin.controller;
+import com.example.genggamin.dto.CreateUserRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
 import com.example.genggamin.security.JwtUtil;
@@ -33,6 +34,16 @@ public class AuthController {
             return ResponseEntity.ok(res);
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(java.util.Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody CreateUserRequest req) {
+        try {
+            User u = userService.register(req);
+            return ResponseEntity.status(201).body(java.util.Map.of("message", "User created", "id", u.getId()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }
     }
 }

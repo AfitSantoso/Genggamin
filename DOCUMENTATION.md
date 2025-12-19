@@ -22,3 +22,6 @@ Relasi Many-to-Many membuat tabel join tambahan (`user_roles`) untuk menyimpan p
 4. Repository meneruskan operasi ke EntityManager Hibernate.
 5. Hibernate menerjemahkan perubahan entitas menjadi SQL (INSERT/UPDATE) dan mengirimkannya ke JDBC driver.
 6. JDBC driver (SQL Server driver) mengirim SQL ke database SQL Server untuk dieksekusi.
+
+ADMIN : afitadmin
+PASSWORD : 12345678
