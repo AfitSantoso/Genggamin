@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,14 +28,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
+        if (header != null) {
+            if (!header.startsWith("Bearer ")) {
+                // header present but not bearer -> respond missing/bearer required
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                String body = "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Authorization header is missing or bearer token is required\"}";
+                response.getWriter().write(body);
+                return;
+            }
+
             String token = header.substring(7);
-            if (jwtUtil.validateToken(token)) {
+            try {
                 String username = jwtUtil.getUsernameFromToken(token);
-                // For simplicity, no roles parsing here; grant a generic user authority
-                List authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+                java.util.List authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (ExpiredJwtException eje) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                String body = "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Invalid or expired bearer token\"}";
+                response.getWriter().write(body);
+                return;
+            } catch (JwtException | IllegalArgumentException e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                String body = "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Invalid or expired bearer token\"}";
+                response.getWriter().write(body);
+                return;
             }
         }
 

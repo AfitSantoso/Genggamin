@@ -1,6 +1,9 @@
 package com.example.genggamin.controller;
 
 import com.example.genggamin.dto.CreateUserRequest;
+import com.example.genggamin.dto.ApiResponse;
+import com.example.genggamin.dto.UserResponse;
+import com.example.genggamin.dto.RoleResponse;
 import com.example.genggamin.entity.Role;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.repository.RoleRepository;
@@ -30,8 +33,20 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAllUsers() {
+        java.util.List<User> users = userService.getAllUsers();
+        java.util.List<UserResponse> data = users.stream().map(u -> {
+            java.util.Set<RoleResponse> roles = u.getRoles().stream().map(r -> new RoleResponse(r.getId(), r.getName(), r.getDescription())).collect(java.util.stream.Collectors.toSet());
+            return new UserResponse(u.getId(), u.getUsername(), u.getEmail(), u.getPhone(), u.getIsActive(), roles);
+        }).collect(java.util.stream.Collectors.toList());
+
+        if (data.isEmpty()) {
+            ApiResponse<java.util.List<UserResponse>> resp = new ApiResponse<>(true, "No users found", java.util.Collections.emptyList());
+            return ResponseEntity.ok(resp);
+        }
+
+        ApiResponse<java.util.List<UserResponse>> resp = new ApiResponse<>(true, "Users retrieved successfully", data);
+        return ResponseEntity.ok(resp);
     }
 
     @PostMapping
