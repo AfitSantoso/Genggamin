@@ -22,13 +22,17 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
-        User user = userService.authenticate(req);
-        LoginResponse res = userService.Login(req);
-        // collect roles as strings
-        java.util.Set<String> roles = user.getRoles().stream().map(r -> r.getName()).collect(java.util.stream.Collectors.toSet());
-        String token = jwtUtil.generateToken(user.getUsername(), roles);
-        res.setToken(token);
-        return ResponseEntity.ok(res);
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        try {
+            User user = userService.authenticate(req);
+            LoginResponse res = userService.Login(req);
+            // collect roles as strings
+            java.util.Set<String> roles = user.getRoles().stream().map(r -> r.getName()).collect(java.util.stream.Collectors.toSet());
+            String token = jwtUtil.generateToken(user.getUsername(), roles);
+            res.setToken(token);
+            return ResponseEntity.ok(res);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(java.util.Map.of("message", e.getMessage()));
+        }
     }
 }
