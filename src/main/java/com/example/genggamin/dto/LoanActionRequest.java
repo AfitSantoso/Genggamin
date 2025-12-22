@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponse<T> {
-    private boolean success;
-    private String message;
-    private T data;
+public class LoanActionRequest {
+    private String notes;
+    private Boolean approved; // For approval action: true = approve, false = reject
 }

@@ -26,13 +26,41 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        Role admin = roleRepository.findByName("ADMIN").orElseGet(() -> roleRepository.save(Role.builder().name("ADMIN").build()));
-        Role userRole = roleRepository.findByName("USER").orElseGet(() -> roleRepository.save(Role.builder().name("USER").build()));
+        // Initialize all required roles
+        Role admin = roleRepository.findByName("ADMIN")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("ADMIN")
+                        .description("Administrator with full access")
+                        .build()));
+        
+        Role customer = roleRepository.findByName("CUSTOMER")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("CUSTOMER")
+                        .description("Customer who can submit loan applications")
+                        .build()));
+        
+        Role marketing = roleRepository.findByName("MARKETING")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("MARKETING")
+                        .description("Marketing staff who can review loan applications")
+                        .build()));
+        
+        Role branchManager = roleRepository.findByName("BRANCH_MANAGER")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("BRANCH_MANAGER")
+                        .description("Branch manager who can approve/reject loans")
+                        .build()));
+        
+        Role backOffice = roleRepository.findByName("BACK_OFFICE")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("BACK_OFFICE")
+                        .description("Back office staff who can disburse loans")
+                        .build()));
 
+        // Create default admin user
         if (userRepository.findByUsername("admin").isEmpty()) {
             Set<Role> roles = new HashSet<>();
             roles.add(admin);
-            roles.add(userRole);
 
             User adminUser = User.builder()
                     .username("admin")
@@ -43,6 +71,67 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             userService.createUser(adminUser);
+        }
+
+        // Create sample users for each role
+        if (userRepository.findByUsername("customer1").isEmpty()) {
+            Set<Role> roles = new HashSet<>();
+            roles.add(customer);
+
+            User customerUser = User.builder()
+                    .username("customer1")
+                    .email("customer1@example.com")
+                    .password("password")
+                    .isActive(true)
+                    .roles(roles)
+                    .build();
+
+            userService.createUser(customerUser);
+        }
+
+        if (userRepository.findByUsername("marketing1").isEmpty()) {
+            Set<Role> roles = new HashSet<>();
+            roles.add(marketing);
+
+            User marketingUser = User.builder()
+                    .username("marketing1")
+                    .email("marketing1@example.com")
+                    .password("password")
+                    .isActive(true)
+                    .roles(roles)
+                    .build();
+
+            userService.createUser(marketingUser);
+        }
+
+        if (userRepository.findByUsername("manager1").isEmpty()) {
+            Set<Role> roles = new HashSet<>();
+            roles.add(branchManager);
+
+            User managerUser = User.builder()
+                    .username("manager1")
+                    .email("manager1@example.com")
+                    .password("password")
+                    .isActive(true)
+                    .roles(roles)
+                    .build();
+
+            userService.createUser(managerUser);
+        }
+
+        if (userRepository.findByUsername("backoffice1").isEmpty()) {
+            Set<Role> roles = new HashSet<>();
+            roles.add(backOffice);
+
+            User backOfficeUser = User.builder()
+                    .username("backoffice1")
+                    .email("backoffice1@example.com")
+                    .password("password")
+                    .isActive(true)
+                    .roles(roles)
+                    .build();
+
+            userService.createUser(backOfficeUser);
         }
     }
 }

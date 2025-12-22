@@ -77,11 +77,22 @@ public class UserService {
         user.setIsActive(true);
         user.setPhone(req.getPhone());
 
-        Role defaultRole = roleRepository.findByName("CUSTOMER").orElseGet(() -> {
-            Role r = Role.builder().name("CUSTOMER").description("Default role").build();
-            return roleRepository.save(r);
-        });
-        user.getRoles().add(defaultRole);
+        // Handle roles assignment
+        if (req.getRoles() != null && !req.getRoles().isEmpty()) {
+            // If roles are provided, assign them
+            for (String roleName : req.getRoles()) {
+                Role role = roleRepository.findByName(roleName)
+                        .orElseThrow(() -> new RuntimeException("Role " + roleName + " tidak ditemukan"));
+                user.getRoles().add(role);
+            }
+        } else {
+            // If no roles provided, assign default CUSTOMER role
+            Role defaultRole = roleRepository.findByName("CUSTOMER").orElseGet(() -> {
+                Role r = Role.builder().name("CUSTOMER").description("Default customer role").build();
+                return roleRepository.save(r);
+            });
+            user.getRoles().add(defaultRole);
+        }
 
         return userRepository.saveAndFlush(user);
     }

@@ -59,4 +59,14 @@ public class JwtUtil {
         Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
         return claims.getSubject();
     }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getRolesFromToken(String token) {
+        Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+        java.util.List<String> rolesList = claims.get("roles", java.util.List.class);
+        if (rolesList != null) {
+            return rolesList.stream().collect(Collectors.toSet());
+        }
+        return java.util.Collections.emptySet();
+    }
 }

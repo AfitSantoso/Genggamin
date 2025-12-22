@@ -46,4 +46,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        // Untuk JWT stateless, logout dilakukan di client-side dengan menghapus token
+        // Endpoint ini memberikan konfirmasi bahwa user berhasil logout
+        return ResponseEntity.ok(java.util.Map.of(
+            "success", true,
+            "message", "Logout successful. Please remove the token from client."
+        ));
+    }
 }
