@@ -18,7 +18,7 @@ public class JwtUtil {
     private final long expirationMs;
 
     public JwtUtil(@Value("${app.jwt.secret:secret-key-please-change-this}") String secret,
-                   @Value("${app.jwt.expiration:3600000}") long expirationMs) {
+                   @Value("${app.jwt.expiration:86400000}") long expirationMs) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             try {

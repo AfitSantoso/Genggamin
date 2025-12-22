@@ -3,7 +3,6 @@ package com.example.genggamin.controller;
 import com.example.genggamin.dto.CreateUserRequest;
 import com.example.genggamin.dto.ApiResponse;
 import com.example.genggamin.dto.UserResponse;
-import com.example.genggamin.dto.RoleResponse;
 import com.example.genggamin.entity.Role;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.repository.RoleRepository;
@@ -17,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -34,11 +32,8 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAllUsers() {
-        java.util.List<User> users = userService.getAllUsers();
-        java.util.List<UserResponse> data = users.stream().map(u -> {
-            java.util.Set<RoleResponse> roles = u.getRoles().stream().map(r -> new RoleResponse(r.getId(), r.getName(), r.getDescription())).collect(java.util.stream.Collectors.toSet());
-            return new UserResponse(u.getId(), u.getUsername(), u.getEmail(), u.getPhone(), u.getIsActive(), roles);
-        }).collect(java.util.stream.Collectors.toList());
+        // Service sekarang return DTO langsung, bukan Entity
+        java.util.List<UserResponse> data = userService.getAllUsers();
 
         if (data.isEmpty()) {
             ApiResponse<java.util.List<UserResponse>> resp = new ApiResponse<>(true, "No users found", java.util.Collections.emptyList());

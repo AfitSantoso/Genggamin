@@ -11,6 +11,22 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
+  # Redis Configuration
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      timeout: 60000ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10 minutes in milliseconds
 
 server:
   port: 8080
+
+# JWT Configuration
+app:
+  jwt:
+    secret: "genggamin-secret-key-change-this-in-production-with-stronger-key"
+    expiration: 86400000  # 24 hours in milliseconds
