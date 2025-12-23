@@ -105,6 +105,8 @@ public class RedisConfig {
                 .allowIfSubType(java.util.List.class)
                 .allowIfSubType(java.util.Set.class)
                 .allowIfSubType(java.util.Map.class)
+                .allowIfSubType(java.math.BigDecimal.class)
+                .allowIfSubType(java.time.LocalDateTime.class)
                 .build();
         
         mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
