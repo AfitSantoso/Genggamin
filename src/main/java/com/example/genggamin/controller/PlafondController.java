@@ -211,14 +211,17 @@ public class PlafondController {
     }
 
     /**
-     * Delete plafond (hard delete)
+     * Soft delete plafond
      * Only accessible by ADMIN
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deletePlafond(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deletePlafond(
+            @PathVariable Long id,
+            Authentication authentication) {
         try {
-            plafondService.deletePlafond(id);
+            String deletedBy = authentication.getName();
+            plafondService.deletePlafond(id, deletedBy);
             return ResponseEntity.ok(ApiResponse.<Void>builder()
                     .success(true)
                     .message("Plafond deleted successfully")
@@ -263,6 +266,35 @@ public class PlafondController {
                     .body(ApiResponse.<PlafondResponse>builder()
                             .success(false)
                             .message("Failed to toggle plafond status: " + e.getMessage())
+                            .build());
+        }
+    }
+
+    /**
+     * Restore soft deleted plafond
+     * Only accessible by ADMIN
+     */
+    @PatchMapping("/{id}/restore")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PlafondResponse>> restorePlafond(@PathVariable Long id) {
+        try {
+            PlafondResponse plafond = plafondService.restorePlafond(id);
+            return ResponseEntity.ok(ApiResponse.<PlafondResponse>builder()
+                    .success(true)
+                    .message("Plafond restored successfully")
+                    .data(plafond)
+                    .build());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.<PlafondResponse>builder()
+                            .success(false)
+                            .message(e.getMessage())
+                            .build());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<PlafondResponse>builder()
+                            .success(false)
+                            .message("Failed to restore plafond: " + e.getMessage())
                             .build());
         }
     }

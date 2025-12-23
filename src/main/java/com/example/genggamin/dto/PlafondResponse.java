@@ -3,6 +3,7 @@ package com.example.genggamin.dto;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * DTO Response untuk Plafond
@@ -20,4 +21,6 @@ public class PlafondResponse {
     private Long tenorMonth;
     private BigDecimal interestRate;
     private Boolean isActive;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

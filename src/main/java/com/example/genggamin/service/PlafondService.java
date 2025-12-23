@@ -28,37 +28,37 @@ public class PlafondService {
     }
 
     /**
-     * Get all plafonds
+     * Get all plafonds yang tidak dihapus
      * Cached dengan key "allPlafonds"
      */
     @Cacheable(value = "plafonds", key = "'allPlafonds'")
     @Transactional(readOnly = true)
     public List<PlafondResponse> getAllPlafonds() {
-        return plafondRepository.findAllSorted().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Get all active plafonds (isActive = true)
-     * Cached dengan key "activePlafonds"
-     */
-    @Cacheable(value = "plafonds", key = "'activePlafonds'")
-    @Transactional(readOnly = true)
-    public List<PlafondResponse> getActivePlafonds() {
         return plafondRepository.findAllActive().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Get plafond by ID
+     * Get all active plafonds (isActive = true dan tidak dihapus)
+     * Cached dengan key "activePlafonds"
+     */
+    @Cacheable(value = "plafonds", key = "'activePlafonds'")
+    @Transactional(readOnly = true)
+    public List<PlafondResponse> getActivePlafonds() {
+        return plafondRepository.findAllActiveAndNotDeleted().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get plafond by ID (active only)
      * Cached dengan key berdasarkan ID
      */
     @Cacheable(value = "plafonds", key = "'plafond:' + #id")
     @Transactional(readOnly = true)
     public PlafondResponse getPlafondById(Long id) {
-        Plafond plafond = plafondRepository.findById(id)
+        Plafond plafond = plafondRepository.findByIdActive(id)
                 .orElseThrow(() -> new RuntimeException("Plafond not found with id: " + id));
         return mapToResponse(plafond);
     }
@@ -100,6 +100,7 @@ public class PlafondService {
                 .tenorMonth(request.getTenorMonth())
                 .interestRate(request.getInterestRate())
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+                .isDeleted(false)
                 .build();
 
         Plafond saved = plafondRepository.saveAndFlush(plafond);
@@ -117,7 +118,7 @@ public class PlafondService {
         request.validate();
 
         // Find existing plafond
-        Plafond plafond = plafondRepository.findById(id)
+        Plafond plafond = plafondRepository.findByIdActive(id)
                 .orElseThrow(() -> new RuntimeException("Plafond not found with id: " + id));
 
         // Check duplicate (exclude current plafond)
@@ -144,16 +145,36 @@ public class PlafondService {
     }
 
     /**
-     * Delete plafond (hard delete)
+     * Soft delete plafond
      * Evict cache untuk refresh data
      * Hanya bisa dilakukan oleh ADMIN
      */
     @CacheEvict(value = "plafonds", allEntries = true)
-    public void deletePlafond(Long id) {
+    public void deletePlafond(Long id, String deletedBy) {
+        Plafond plafond = plafondRepository.findByIdActive(id)
+                .orElseThrow(() -> new RuntimeException("Plafond not found with id: " + id));
+
+        // Soft delete
+        plafond.softDelete(deletedBy);
+        plafondRepository.saveAndFlush(plafond);
+    }
+
+    /**
+     * Restore soft deleted plafond
+     * Hanya bisa dilakukan oleh ADMIN
+     */
+    @CacheEvict(value = "plafonds", allEntries = true)
+    public PlafondResponse restorePlafond(Long id) {
         Plafond plafond = plafondRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Plafond not found with id: " + id));
 
-        plafondRepository.delete(plafond);
+        if (!plafond.getIsDeleted()) {
+            throw new RuntimeException("Plafond is not deleted");
+        }
+
+        plafond.restore();
+        Plafond restored = plafondRepository.saveAndFlush(plafond);
+        return mapToResponse(restored);
     }
 
     /**
@@ -162,7 +183,7 @@ public class PlafondService {
      */
     @CacheEvict(value = "plafonds", allEntries = true)
     public PlafondResponse toggleActiveStatus(Long id) {
-        Plafond plafond = plafondRepository.findById(id)
+        Plafond plafond = plafondRepository.findByIdActive(id)
                 .orElseThrow(() -> new RuntimeException("Plafond not found with id: " + id));
 
         plafond.setIsActive(!plafond.getIsActive());
@@ -181,6 +202,8 @@ public class PlafondService {
                 .tenorMonth(plafond.getTenorMonth())
                 .interestRate(plafond.getInterestRate())
                 .isActive(plafond.getIsActive())
+                .createdAt(plafond.getCreatedAt())
+                .updatedAt(plafond.getUpdatedAt())
                 .build();
     }
 }
