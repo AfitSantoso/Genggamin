@@ -1,5 +1,6 @@
 package com.example.genggamin.security;
 
+import com.example.genggamin.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +21,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, TokenBlacklistService tokenBlacklistService) {
         this.jwtUtil = jwtUtil;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -40,6 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String token = header.substring(7);
             try {
+                // Check if token is blacklisted
+                if (tokenBlacklistService.isTokenBlacklisted(token)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    String body = "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Token has been revoked (logged out)\"}";
+                    response.getWriter().write(body);
+                    return;
+                }
+                
                 String username = jwtUtil.getUsernameFromToken(token);
                 java.util.Set<String> roles = jwtUtil.getRolesFromToken(token);
                 

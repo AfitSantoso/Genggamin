@@ -173,4 +173,49 @@ public class UserService {
 
         return userRepository.saveAndFlush(user);
     }
+
+    /**
+     * Create user dari CreateUserRequest dengan role handling
+     * Method ini menangani role assignment dari request
+     */
+    @Caching(evict = {
+            @CacheEvict(value = "users", allEntries = true),
+            @CacheEvict(value = "userByUsername", key = "#req.username")
+    })
+    public User createUserFromRequest(CreateUserRequest req) {
+        if (req.getUsername() == null || req.getEmail() == null || req.getPassword() == null) {
+            throw new RuntimeException("Username, email, dan password diperlukan");
+        }
+        if (userRepository.existsByUsername(req.getUsername())) {
+            throw new RuntimeException("Username sudah ada");
+        }
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email sudah ada");
+        }
+
+        User user = new User();
+        user.setUsername(req.getUsername());
+        user.setEmail(req.getEmail());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setIsActive(req.getIsActive() != null ? req.getIsActive() : true);
+        user.setPhone(req.getPhone());
+
+        // Handle roles assignment
+        if (req.getRoles() != null && !req.getRoles().isEmpty()) {
+            for (String roleName : req.getRoles()) {
+                Role role = roleRepository.findByName(roleName)
+                        .orElseThrow(() -> new RuntimeException("Role " + roleName + " tidak ditemukan"));
+                user.getRoles().add(role);
+            }
+        } else {
+            // If no roles provided, assign default CUSTOMER role
+            Role defaultRole = roleRepository.findByName("CUSTOMER").orElseGet(() -> {
+                Role r = Role.builder().name("CUSTOMER").description("Default customer role").build();
+                return roleRepository.save(r);
+            });
+            user.getRoles().add(defaultRole);
+        }
+
+        return userRepository.saveAndFlush(user);
+    }
 }

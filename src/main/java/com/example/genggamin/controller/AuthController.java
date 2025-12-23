@@ -4,6 +4,7 @@ import com.example.genggamin.dto.CreateUserRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
 import com.example.genggamin.security.JwtUtil;
+import com.example.genggamin.service.TokenBlacklistService;
 import com.example.genggamin.service.UserService;
 import com.example.genggamin.entity.User;
 import org.springframework.http.ResponseEntity;
@@ -11,15 +12,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthController(UserService userService, JwtUtil jwtUtil) {
+    public AuthController(UserService userService, JwtUtil jwtUtil, TokenBlacklistService tokenBlacklistService) {
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/login")
@@ -48,12 +53,33 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        // Untuk JWT stateless, logout dilakukan di client-side dengan menghapus token
-        // Endpoint ini memberikan konfirmasi bahwa user berhasil logout
-        return ResponseEntity.ok(java.util.Map.of(
-            "success", true,
-            "message", "Logout successful. Please remove the token from client."
-        ));
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+        try {
+            // Extract token from Authorization header
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                
+                // Get token expiration time
+                long expirationTime = jwtUtil.getExpirationTimeFromToken(token);
+                
+                // Add token to blacklist
+                tokenBlacklistService.blacklistToken(token, expirationTime);
+                
+                return ResponseEntity.ok(java.util.Map.of(
+                    "success", true,
+                    "message", "Logout successful. Token has been invalidated."
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(java.util.Map.of(
+                    "success", false,
+                    "message", "Authorization header is missing or invalid"
+                ));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(java.util.Map.of(
+                "success", false,
+                "message", "Logout failed: " + e.getMessage()
+            ));
+        }
     }
 }

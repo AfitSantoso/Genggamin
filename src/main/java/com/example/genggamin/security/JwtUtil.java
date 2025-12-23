@@ -69,4 +69,14 @@ public class JwtUtil {
         }
         return java.util.Collections.emptySet();
     }
+
+    /**
+     * Mendapatkan waktu expirasi token dalam milliseconds
+     * @param token JWT token
+     * @return expiration time dalam milliseconds
+     */
+    public long getExpirationTimeFromToken(String token) {
+        Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+        return claims.getExpiration().getTime();
+    }
 }
