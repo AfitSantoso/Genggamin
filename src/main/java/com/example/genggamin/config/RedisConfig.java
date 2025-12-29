@@ -77,6 +77,7 @@ public class RedisConfig {
                 .cacheDefaults(defaultConfig)
                 .withCacheConfiguration("users", userConfig)
                 .withCacheConfiguration("userByUsername", userConfig)
+                .withCacheConfiguration("userById", userConfig)
                 .withCacheConfiguration("roles", roleConfig)
                 .build();
     }

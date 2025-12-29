@@ -34,17 +34,45 @@ CREATE TABLE password_reset_tokens (
     CONSTRAINT fk_prt_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
---B CUSTOMERS
-CREATE TABLE customers (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-    user_id BIGINT NOT NULL UNIQUE,
-    nik VARCHAR(20) NOT NULL UNIQUE,
-    address VARCHAR(255),
-    date_of_birth DATE,
-    monthly_income DECIMAL(18,2),
-    created_at DATETIME2 DEFAULT SYSDATETIME(),
-    CONSTRAINT fk_customer_user FOREIGN KEY (user_id) REFERENCES users(id)
+CREATE TABLE LoanDB.dbo.customers (
+	id bigint IDENTITY(1,1) NOT NULL,
+	user_id bigint NOT NULL,
+	nik varchar(20) COLLATE Latin1_General_CI_AS NOT NULL,
+	address varchar(255) COLLATE Latin1_General_CI_AS NULL,
+	date_of_birth date NULL,
+	monthly_income decimal(18,2) NULL,
+	created_at datetime2 DEFAULT sysdatetime() NULL,
+	full_name varchar(150) COLLATE Latin1_General_CI_AS NULL,
+	phone varchar(20) COLLATE Latin1_General_CI_AS NULL,
+	current_address varchar(255) COLLATE Latin1_General_CI_AS NULL,
+	mother_maiden_name varchar(150) COLLATE Latin1_General_CI_AS NULL,
+	CONSTRAINT PK__customer__3213E83F318A933E PRIMARY KEY (id),
+	CONSTRAINT UQ__customer__B9BE370E451E9005 UNIQUE (user_id),
+	CONSTRAINT UQ__customer__DF97D0ED2C0CF221 UNIQUE (nik)
 );
+
+
+-- LoanDB.dbo.customers foreign keys
+
+ALTER TABLE LoanDB.dbo.customers ADD CONSTRAINT fk_customer_user FOREIGN KEY (user_id) REFERENCES LoanDB.dbo.users(id);
+
+--emergency contact
+CREATE TABLE emergency_contacts (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    contact_name VARCHAR(150) NOT NULL,
+    contact_phone VARCHAR(20) NOT NULL,
+    relationship VARCHAR(50), -- contoh: ORANG_TUA, SAUDARA, PASANGAN, TEMAN
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+    CONSTRAINT fk_emergency_customer 
+        FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+
+
+-- LoanDB.dbo.customers foreign keys
+
+ALTER TABLE LoanDB.dbo.customers ADD CONSTRAINT fk_customer_user 
+FOREIGN KEY (user_id) REFERENCES LoanDB.dbo.users(id);
 
 --C PLAFOND
 CREATE TABLE plafonds (
@@ -71,7 +99,7 @@ CREATE TABLE loans (
     CONSTRAINT fk_loan_plafond FOREIGN KEY (plafond_id) REFERENCES plafonds(id)
 );
 
--- REVIEW – APPROVAL – DISBURSEMENT
+-- REVIEW ï¿½ APPROVAL ï¿½ DISBURSEMENT
 CREATE TABLE loan_reviews (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
     loan_id BIGINT NOT NULL UNIQUE,

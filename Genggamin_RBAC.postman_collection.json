@@ -480,6 +480,70 @@
       ]
     },
     {
+      "name": "Customer Profile",
+      "item": [
+        {
+          "name": "Create/Update Customer Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nik\": \"3201234567890123\",\n  \"address\": \"Jl. Contoh No. 123, Jakarta Selatan\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"monthlyIncome\": 5000000.00,\n  \"fullName\": \"John Doe Customer\",\n  \"phone\": \"081234567890\",\n  \"currentAddress\": \"Jl. Alamat Sekarang No. 456, Jakarta Pusat\",\n  \"motherMaidenName\": \"Siti Aminah\",\n  \"emergencyContacts\": [\n    {\n      \"contactName\": \"Budi Santoso\",\n      \"contactPhone\": \"081234567890\",\n      \"relationship\": \"ORANG_TUA\"\n    },\n    {\n      \"contactName\": \"Siti Rahayu\",\n      \"contactPhone\": \"081234567891\",\n      \"relationship\": \"SAUDARA\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Check if User Has Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/has-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "has-profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Users & Roles",
       "item": [
         {

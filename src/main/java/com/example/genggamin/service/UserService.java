@@ -218,4 +218,40 @@ public class UserService {
 
         return userRepository.saveAndFlush(user);
     }
+
+    /**
+     * Get User ID by username
+     * Used by CustomerController to get userId from JWT token
+     */
+    public Long getUserIdByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+        return user.getId();
+    }
+
+    /**
+     * Get user by ID dengan authorization check
+     * Hanya user yang sedang login (dengan ID yang sama) yang bisa mengakses
+     * @param userId ID user yang akan diambil
+     * @param currentUsername Username dari user yang sedang login (dari JWT token)
+     * @return UserResponse DTO
+     * @throws RuntimeException jika user tidak ditemukan atau tidak memiliki akses
+     */
+    @Cacheable(value = "userById", key = "#userId")
+    public UserResponse getUserById(Long userId, String currentUsername) {
+        // Get current logged in user
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User yang sedang login tidak ditemukan"));
+        
+        // Check if current user trying to access their own data
+        if (!currentUser.getId().equals(userId)) {
+            throw new RuntimeException("Anda tidak memiliki akses untuk melihat data user lain");
+        }
+        
+        // Get the requested user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+        
+        return mapToUserResponse(user);
+    }
 }
