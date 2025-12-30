@@ -2,29 +2,29 @@ version: "3.8"
 
 services:
   # SQL Server Database
-  # sqlserver:
-  #   image: mcr.microsoft.com/mssql/server:2022-latest
-  #   container_name: genggamin-sqlserver
-  #   environment:
-  #     - ACCEPT_EULA=Y
-  #     - SA_PASSWORD=P@ssw0rd123
-  #     - MSSQL_PID=Express
-  #   ports:
-  #     - "1433:1433"
-  #   volumes:
-  #     - sqlserver-data:/var/opt/mssql
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD-SHELL",
-  #         "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P P@ssw0rd123 -Q 'SELECT 1' -C || exit 1",
-  #       ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 10
-  #     start_period: 30s
-  #   networks:
-  #     - genggamin-network
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: genggamin-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=P@ssw0rd123
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P P@ssw0rd123 -Q 'SELECT 1' -C || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - genggamin-network
 
   # Redis Cache
   redis:
@@ -57,29 +57,29 @@ services:
     restart: unless-stopped
 
   # Spring Boot Application
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: genggamin-app
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     # Database Configuration
-  #     - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=LoanDB;encrypt=true;trustServerCertificate=true
-  #     - SPRING_DATASOURCE_USERNAME=bot
-  #     - SPRING_DATASOURCE_PASSWORD=P@ssw0rd
-  #     # Redis Configuration
-  #     - SPRING_DATA_REDIS_HOST=redis
-  #     - SPRING_DATA_REDIS_PORT=6379
-  #   depends_on:
-  #     sqlserver:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - genggamin-network
-  #   restart: on-failure
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genggamin-app
+    ports:
+      - "8080:8080"
+    environment:
+      # Database Configuration
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=LoanDB;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=bot
+      - SPRING_DATASOURCE_PASSWORD=P@ssw0rd
+      # Redis Configuration
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - genggamin-network
+    restart: on-failure
 
 volumes:
   sqlserver-data:

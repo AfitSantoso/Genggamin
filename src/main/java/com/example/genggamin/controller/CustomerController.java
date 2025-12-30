@@ -117,6 +117,40 @@ public class CustomerController {
     }
 
     /**
+     * Endpoint untuk update data customer oleh user yang sedang login
+     * PUT /customers/profile
+     * Method ini khusus untuk update, berbeda dengan POST yang bisa create atau update
+     */
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<CustomerResponse>> updateProfile(
+            @RequestBody CustomerRequest request) {
+        try {
+            // Get current logged-in user
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            Long userId = extractUserIdFromAuthentication(authentication);
+            
+            // Update customer profile
+            CustomerResponse customerResponse = customerService.createOrUpdateCustomer(userId, request);
+            
+            ApiResponse<CustomerResponse> response = new ApiResponse<>(
+                true, 
+                "Customer profile updated successfully", 
+                customerResponse
+            );
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            ApiResponse<CustomerResponse> errorResponse = new ApiResponse<>(
+                false, 
+                e.getMessage(), 
+                null
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
      * Helper method untuk extract user ID dari Authentication object
      * Menggunakan UserService untuk mendapatkan user ID dari username
      */
