@@ -30,10 +30,9 @@ public class PlafondController {
 
     /**
      * Get all plafonds
-     * Accessible by all authenticated users
+     * PUBLIC - Accessible without authentication
      */
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PlafondResponse>>> getAllPlafonds() {
         try {
             List<PlafondResponse> plafonds = plafondService.getAllPlafonds();
@@ -62,10 +61,9 @@ public class PlafondController {
 
     /**
      * Get only active plafonds (isActive = true)
-     * Accessible by all authenticated users
+     * PUBLIC - Accessible without authentication
      */
     @GetMapping("/active")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PlafondResponse>>> getActivePlafonds() {
         try {
             List<PlafondResponse> plafonds = plafondService.getActivePlafonds();
@@ -85,10 +83,9 @@ public class PlafondController {
 
     /**
      * Get plafond by ID
-     * Accessible by all authenticated users
+     * PUBLIC - Accessible without authentication
      */
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlafondResponse>> getPlafondById(@PathVariable Long id) {
         try {
             PlafondResponse plafond = plafondService.getPlafondById(id);
@@ -114,10 +111,9 @@ public class PlafondController {
 
     /**
      * Get plafonds by income range
-     * Accessible by authenticated users for checking eligibility
+     * PUBLIC - Accessible without authentication for checking eligibility
      */
     @GetMapping("/by-income/{income}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PlafondResponse>>> getPlafondsByIncome(
             @PathVariable BigDecimal income) {
         try {

@@ -39,6 +39,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/h2-console/**").permitAll()
+                // Allow public access to GET plafonds endpoints
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/plafonds/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

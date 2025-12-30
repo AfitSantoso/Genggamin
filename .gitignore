@@ -35,3 +35,6 @@ build/
 ### Application Copy Files ###
 application-copy.properties
 application-copy.yml
+
+### Environment Variables ###
+.env

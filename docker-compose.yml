@@ -6,9 +6,9 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: genggamin-sqlserver
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=P@ssw0rd123
-      - MSSQL_PID=Express
+      - ACCEPT_EULA=${ACCEPT_EULA}
+      - SA_PASSWORD=${SA_PASSWORD}
+      - MSSQL_PID=${MSSQL_PID}
     ports:
       - "1433:1433"
     volumes:
@@ -17,7 +17,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P P@ssw0rd123 -Q 'SELECT 1' -C || exit 1",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -Q 'SELECT 1' -C || exit 1",
         ]
       interval: 10s
       timeout: 5s
@@ -66,12 +66,22 @@ services:
       - "8080:8080"
     environment:
       # Database Configuration
-      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=LoanDB;encrypt=true;trustServerCertificate=true
-      - SPRING_DATASOURCE_USERNAME=bot
-      - SPRING_DATASOURCE_PASSWORD=P@ssw0rd
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       # Redis Configuration
-      - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${SPRING_DATA_REDIS_PORT}
+      # Email Configuration
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      # JWT Configuration
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      # Frontend URL
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       sqlserver:
         condition: service_healthy
