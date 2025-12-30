@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Application Copy Files ###
+application-copy.properties
+application-copy.yml
