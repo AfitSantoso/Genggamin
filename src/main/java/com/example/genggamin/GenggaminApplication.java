@@ -7,11 +7,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableCaching
-@EnableScheduling  // Enable scheduled tasks untuk cleanup token
+@EnableScheduling // Enable scheduled tasks untuk cleanup token
 public class GenggaminApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(GenggaminApplication.class, args);
-    }
-
+  public static void main(String[] args) {
+    SpringApplication.run(GenggaminApplication.class, args);
+  }
 }

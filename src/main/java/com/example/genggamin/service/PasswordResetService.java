@@ -5,137 +5,141 @@ import com.example.genggamin.entity.User;
 import com.example.genggamin.repository.PasswordResetTokenRepository;
 import com.example.genggamin.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-/**
- * Service untuk handle forgot password dan reset password
- */
+/** Service untuk handle forgot password dan reset password */
 @Service
 public class PasswordResetService {
 
-    private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
-    private static final int TOKEN_EXPIRY_HOURS = 1; // Token berlaku 1 jam
+  private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
+  private static final int TOKEN_EXPIRY_HOURS = 1; // Token berlaku 1 jam
 
-    private final UserRepository userRepository;
-    private final PasswordResetTokenRepository tokenRepository;
-    private final EmailService emailService;
-    private final PasswordEncoder passwordEncoder;
+  private final UserRepository userRepository;
+  private final PasswordResetTokenRepository tokenRepository;
+  private final EmailService emailService;
+  private final PasswordEncoder passwordEncoder;
 
-    public PasswordResetService(UserRepository userRepository,
-                                PasswordResetTokenRepository tokenRepository,
-                                EmailService emailService,
-                                PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.tokenRepository = tokenRepository;
-        this.emailService = emailService;
-        this.passwordEncoder = passwordEncoder;
+  public PasswordResetService(
+      UserRepository userRepository,
+      PasswordResetTokenRepository tokenRepository,
+      EmailService emailService,
+      PasswordEncoder passwordEncoder) {
+    this.userRepository = userRepository;
+    this.tokenRepository = tokenRepository;
+    this.emailService = emailService;
+    this.passwordEncoder = passwordEncoder;
+  }
+
+  /**
+   * Proses forgot password - generate token dan kirim email
+   *
+   * @param email Email user yang lupa password
+   */
+  @Transactional
+  public void processForgotPassword(String email) {
+    // Cari user berdasarkan email
+    User user =
+        userRepository
+            .findByEmail(email)
+            .orElseThrow(
+                () -> new RuntimeException("User dengan email " + email + " tidak ditemukan"));
+
+    // Cek apakah user aktif
+    if (!user.getIsActive()) {
+      throw new RuntimeException("User tidak aktif. Silakan hubungi administrator.");
     }
 
-    /**
-     * Proses forgot password - generate token dan kirim email
-     * @param email Email user yang lupa password
-     */
-    @Transactional
-    public void processForgotPassword(String email) {
-        // Cari user berdasarkan email
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User dengan email " + email + " tidak ditemukan"));
+    // Invalidate semua token lama dari user ini
+    tokenRepository.invalidateAllUserTokens(user);
 
-        // Cek apakah user aktif
-        if (!user.getIsActive()) {
-            throw new RuntimeException("User tidak aktif. Silakan hubungi administrator.");
-        }
+    // Generate token baru
+    String token = UUID.randomUUID().toString();
+    LocalDateTime expiredAt = LocalDateTime.now().plusHours(TOKEN_EXPIRY_HOURS);
 
-        // Invalidate semua token lama dari user ini
-        tokenRepository.invalidateAllUserTokens(user);
+    // Simpan token ke database
+    PasswordResetToken resetToken = new PasswordResetToken();
+    resetToken.setUser(user);
+    resetToken.setToken(token);
+    resetToken.setExpiredAt(expiredAt);
+    resetToken.setUsed(false);
+    tokenRepository.save(resetToken);
 
-        // Generate token baru
-        String token = UUID.randomUUID().toString();
-        LocalDateTime expiredAt = LocalDateTime.now().plusHours(TOKEN_EXPIRY_HOURS);
+    // Kirim email
+    try {
+      emailService.sendPasswordResetEmail(user.getEmail(), token, user.getUsername());
+      log.info("Password reset token generated and email sent for user: {}", user.getUsername());
+    } catch (Exception e) {
+      log.error("Failed to send password reset email for user: {}", user.getUsername(), e);
+      throw new RuntimeException("Gagal mengirim email reset password. Silakan coba lagi.", e);
+    }
+  }
 
-        // Simpan token ke database
-        PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setUser(user);
-        resetToken.setToken(token);
-        resetToken.setExpiredAt(expiredAt);
-        resetToken.setUsed(false);
-        tokenRepository.save(resetToken);
-
-        // Kirim email
-        try {
-            emailService.sendPasswordResetEmail(user.getEmail(), token, user.getUsername());
-            log.info("Password reset token generated and email sent for user: {}", user.getUsername());
-        } catch (Exception e) {
-            log.error("Failed to send password reset email for user: {}", user.getUsername(), e);
-            throw new RuntimeException("Gagal mengirim email reset password. Silakan coba lagi.", e);
-        }
+  /**
+   * Proses reset password dengan token
+   *
+   * @param token Token reset password
+   * @param newPassword Password baru
+   */
+  @Transactional
+  public void resetPassword(String token, String newPassword) {
+    // Validasi password
+    if (newPassword == null || newPassword.length() < 6) {
+      throw new RuntimeException("Password harus minimal 6 karakter");
     }
 
-    /**
-     * Proses reset password dengan token
-     * @param token Token reset password
-     * @param newPassword Password baru
-     */
-    @Transactional
-    public void resetPassword(String token, String newPassword) {
-        // Validasi password
-        if (newPassword == null || newPassword.length() < 6) {
-            throw new RuntimeException("Password harus minimal 6 karakter");
-        }
+    // Cari token di database
+    PasswordResetToken resetToken =
+        tokenRepository
+            .findByToken(token)
+            .orElseThrow(() -> new RuntimeException("Token tidak valid atau tidak ditemukan"));
 
-        // Cari token di database
-        PasswordResetToken resetToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Token tidak valid atau tidak ditemukan"));
-
-        // Cek apakah token sudah digunakan
-        if (resetToken.getUsed()) {
-            throw new RuntimeException("Token sudah pernah digunakan");
-        }
-
-        // Cek apakah token sudah expired
-        if (resetToken.isExpired()) {
-            throw new RuntimeException("Token sudah kadaluarsa. Silakan request reset password lagi.");
-        }
-
-        // Update password user
-        User user = resetToken.getUser();
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-
-        // Mark token sebagai used
-        resetToken.setUsed(true);
-        tokenRepository.save(resetToken);
-
-        log.info("Password successfully reset for user: {}", user.getUsername());
+    // Cek apakah token sudah digunakan
+    if (resetToken.getUsed()) {
+      throw new RuntimeException("Token sudah pernah digunakan");
     }
 
-    /**
-     * Validasi token tanpa mereset password (untuk cek apakah token valid)
-     * @param token Token yang akan divalidasi
-     * @return true jika token valid
-     */
-    public boolean validateToken(String token) {
-        return tokenRepository.findByToken(token)
-                .map(PasswordResetToken::isValid)
-                .orElse(false);
+    // Cek apakah token sudah expired
+    if (resetToken.isExpired()) {
+      throw new RuntimeException("Token sudah kadaluarsa. Silakan request reset password lagi.");
     }
 
-    /**
-     * Scheduled task untuk cleanup token yang expired atau sudah digunakan
-     * Dijalankan setiap hari jam 2 pagi
-     */
-    @Scheduled(cron = "0 0 2 * * ?")
-    @Transactional
-    public void cleanupExpiredTokens() {
-        log.info("Running cleanup for expired and used password reset tokens");
-        tokenRepository.deleteExpiredOrUsedTokens(LocalDateTime.now());
-        log.info("Cleanup completed");
-    }
+    // Update password user
+    User user = resetToken.getUser();
+    user.setPassword(passwordEncoder.encode(newPassword));
+    userRepository.save(user);
+
+    // Mark token sebagai used
+    resetToken.setUsed(true);
+    tokenRepository.save(resetToken);
+
+    log.info("Password successfully reset for user: {}", user.getUsername());
+  }
+
+  /**
+   * Validasi token tanpa mereset password (untuk cek apakah token valid)
+   *
+   * @param token Token yang akan divalidasi
+   * @return true jika token valid
+   */
+  public boolean validateToken(String token) {
+    return tokenRepository.findByToken(token).map(PasswordResetToken::isValid).orElse(false);
+  }
+
+  /**
+   * Scheduled task untuk cleanup token yang expired atau sudah digunakan Dijalankan setiap hari jam
+   * 2 pagi
+   */
+  @Scheduled(cron = "0 0 2 * * ?")
+  @Transactional
+  public void cleanupExpiredTokens() {
+    log.info("Running cleanup for expired and used password reset tokens");
+    tokenRepository.deleteExpiredOrUsedTokens(LocalDateTime.now());
+    log.info("Cleanup completed");
+  }
 }

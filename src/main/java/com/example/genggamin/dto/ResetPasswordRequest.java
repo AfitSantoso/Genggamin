@@ -4,13 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO untuk request reset password
- */
+/** DTO untuk request reset password */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResetPasswordRequest {
-    private String token;
-    private String newPassword;
+  private String token;
+  private String newPassword;
 }

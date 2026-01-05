@@ -9,60 +9,57 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-/**
- * Service untuk mengirim email menggunakan Spring Mail
- */
+/** Service untuk mengirim email menggunakan Spring Mail */
 @Service
 public class EmailService {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+  private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    private final JavaMailSender mailSender;
+  private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+  @Value("${spring.mail.username}")
+  private String fromEmail;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
-    private String frontendUrl;
+  @Value("${app.frontend.url:http://localhost:3000}")
+  private String frontendUrl;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+  public EmailService(JavaMailSender mailSender) {
+    this.mailSender = mailSender;
+  }
+
+  /**
+   * Mengirim email reset password
+   *
+   * @param toEmail Email penerima
+   * @param token Token reset password
+   * @param username Username penerima
+   */
+  public void sendPasswordResetEmail(String toEmail, String token, String username) {
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+      helper.setFrom(fromEmail);
+      helper.setTo(toEmail);
+      helper.setSubject("Reset Password - Genggamin Loan System");
+
+      String resetUrl = frontendUrl + "/reset-password?token=" + token;
+
+      String htmlContent = buildPasswordResetEmailTemplate(username, resetUrl, token);
+      helper.setText(htmlContent, true);
+
+      mailSender.send(message);
+      log.info("Password reset email sent successfully to: {}", toEmail);
+
+    } catch (MessagingException e) {
+      log.error("Failed to send password reset email to: {}", toEmail, e);
+      throw new RuntimeException("Failed to send password reset email", e);
     }
+  }
 
-    /**
-     * Mengirim email reset password
-     * @param toEmail Email penerima
-     * @param token Token reset password
-     * @param username Username penerima
-     */
-    public void sendPasswordResetEmail(String toEmail, String token, String username) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
-            helper.setTo(toEmail);
-            helper.setSubject("Reset Password - Genggamin Loan System");
-
-            String resetUrl = frontendUrl + "/reset-password?token=" + token;
-            
-            String htmlContent = buildPasswordResetEmailTemplate(username, resetUrl, token);
-            helper.setText(htmlContent, true);
-
-            mailSender.send(message);
-            log.info("Password reset email sent successfully to: {}", toEmail);
-
-        } catch (MessagingException e) {
-            log.error("Failed to send password reset email to: {}", toEmail, e);
-            throw new RuntimeException("Failed to send password reset email", e);
-        }
-    }
-
-    /**
-     * Build HTML template untuk email reset password
-     */
-    private String buildPasswordResetEmailTemplate(String username, String resetUrl, String token) {
-        return """
+  /** Build HTML template untuk email reset password */
+  private String buildPasswordResetEmailTemplate(String username, String resetUrl, String token) {
+    return """
             <!DOCTYPE html>
             <html>
             <head>
@@ -85,24 +82,24 @@ public class EmailService {
                     </div>
                     <div class="content">
                         <p>Halo <strong>%s</strong>,</p>
-                        
+
                         <p>Kami menerima permintaan untuk reset password akun Anda di Genggamin Loan System.</p>
-                        
+
                         <p>Silakan klik tombol di bawah ini untuk mereset password Anda:</p>
-                        
+
                         <p style="text-align: center;">
                             <a href="%s" class="button">Reset Password</a>
                         </p>
-                        
+
                         <p>Atau copy dan paste link berikut di browser Anda:</p>
                         <div class="token">%s</div>
-                        
+
                         <p class="warning">⚠️ Link ini hanya berlaku selama 1 jam.</p>
-                        
+
                         <p>Jika Anda tidak melakukan permintaan reset password, abaikan email ini. Password Anda tidak akan berubah.</p>
-                        
+
                         <hr>
-                        
+
                         <p><strong>Token untuk testing API:</strong></p>
                         <div class="token">%s</div>
                         <p style="font-size: 12px; color: #666;">Gunakan token ini di endpoint: POST /auth/reset-password</p>
@@ -114,6 +111,7 @@ public class EmailService {
                 </div>
             </body>
             </html>
-            """.formatted(username, resetUrl, resetUrl, token);
-    }
+            """
+        .formatted(username, resetUrl, resetUrl, token);
+  }
 }

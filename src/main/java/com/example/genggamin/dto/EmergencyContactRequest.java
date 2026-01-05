@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EmergencyContactRequest {
-    
-    private String contactName;
-    private String contactPhone;
-    private String relationship; // ORANG_TUA, SAUDARA, PASANGAN, TEMAN
+
+  private String contactName;
+  private String contactPhone;
+  private String relationship; // ORANG_TUA, SAUDARA, PASANGAN, TEMAN
 }
