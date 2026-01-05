@@ -67,7 +67,8 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+  public ResponseEntity<?> logout(
+      @RequestHeader(value = "Authorization", required = false) String authHeader) {
     try {
       // Extract token from Authorization header
       if (authHeader != null && authHeader.startsWith("Bearer ")) {
