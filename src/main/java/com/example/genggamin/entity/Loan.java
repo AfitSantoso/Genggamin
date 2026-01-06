@@ -1,13 +1,12 @@
 package com.example.genggamin.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loans")
@@ -17,70 +16,61 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Loan {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "customer_id", nullable = false)
+  private Customer customer;
 
-    @Column(name = "plafond_id")
-    private Long plafondId;
+  @Column(name = "plafond_id")
+  private Long plafondId;
 
-    @Column(name = "loan_amount", nullable = false)
-    private BigDecimal amount;
+  @Column(name = "loan_amount", nullable = false)
+  private BigDecimal amount;
 
-    @Column(name = "tenor_month", nullable = false)
-    private Long tenureMonths;
+  @Column(name = "tenor_month", nullable = false)
+  private Long tenureMonths;
 
-    @Column(name = "interest_rate")
-    private BigDecimal interestRate;
+  @Column(name = "interest_rate")
+  private BigDecimal interestRate;
 
-    @Transient
-    private String purpose;
+  @Column(name = "purpose", length = 500)
+  private String purpose;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private LoanStatus status = LoanStatus.SUBMITTED;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  @Builder.Default
+  private LoanStatus status = LoanStatus.SUBMITTED;
 
-    @Transient
-    private String reviewNotes;
-    
-    @Transient
-    private String approvalNotes;
-    
-    @Transient
-    private String disbursementNotes;
+  @Transient private String reviewNotes;
 
-    @Column(name = "submission_date")
-    @Builder.Default
-    private LocalDateTime submittedAt = LocalDateTime.now();
+  @Transient private String approvalNotes;
 
-    @Transient
-    private LocalDateTime reviewedAt;
+  @Transient private String disbursementNotes;
 
-    @Transient
-    private LocalDateTime approvedAt;
+  @Column(name = "submission_date")
+  @Builder.Default
+  private LocalDateTime submittedAt = LocalDateTime.now();
 
-    @Transient
-    private LocalDateTime disbursedAt;
+  @Transient private LocalDateTime reviewedAt;
 
-    @Transient
-    private String reviewedBy;
+  @Transient private LocalDateTime approvedAt;
 
-    @Transient
-    private String approvedBy;
+  @Transient private LocalDateTime disbursedAt;
 
-    @Transient
-    private String disbursedBy;
+  @Transient private String reviewedBy;
 
-    public enum LoanStatus {
-        SUBMITTED,
-        UNDER_REVIEW,
-        APPROVED,
-        REJECTED,
-        DISBURSED
-    }
+  @Transient private String approvedBy;
+
+  @Transient private String disbursedBy;
+
+  public enum LoanStatus {
+    SUBMITTED,
+    UNDER_REVIEW,
+    APPROVED,
+    REJECTED,
+    DISBURSED
+  }
 }

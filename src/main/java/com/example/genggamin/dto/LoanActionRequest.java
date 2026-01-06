@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanActionRequest {
-    private String notes;
-    private Boolean approved; // For approval action: true = approve, false = reject
+  private String notes;
+  private Boolean approved; // For approval action: true = approve, false = reject
 }

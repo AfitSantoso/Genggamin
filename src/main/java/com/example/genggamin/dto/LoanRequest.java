@@ -1,18 +1,17 @@
 package com.example.genggamin.dto;
 
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanRequest {
-    private BigDecimal amount;
-    private Long tenureMonths;
-    private String purpose;
+  private BigDecimal amount;
+  private Long tenureMonths;
+  private String purpose;
 }
