@@ -22,7 +22,7 @@ public class Loan {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "customer_id", nullable = false)
-  private User user;
+  private Customer customer;
 
   @Column(name = "plafond_id")
   private Long plafondId;
@@ -36,7 +36,8 @@ public class Loan {
   @Column(name = "interest_rate")
   private BigDecimal interestRate;
 
-  @Transient private String purpose;
+  @Column(name = "purpose", length = 500)
+  private String purpose;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)

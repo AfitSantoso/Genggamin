@@ -15,8 +15,10 @@ import lombok.NoArgsConstructor;
 public class LoanResponse {
   private Long id;
   private String username;
+  private Long plafondId;
   private BigDecimal amount;
   private Long tenureMonths;
+  private BigDecimal interestRate;
   private String purpose;
   private String status;
   private String reviewNotes;
@@ -33,9 +35,11 @@ public class LoanResponse {
   public static LoanResponse fromEntity(Loan loan) {
     return LoanResponse.builder()
         .id(loan.getId())
-        .username(loan.getUser().getUsername())
+        .username(loan.getCustomer().getUser().getUsername())
+        .plafondId(loan.getPlafondId())
         .amount(loan.getAmount())
         .tenureMonths(loan.getTenureMonths())
+        .interestRate(loan.getInterestRate())
         .purpose(loan.getPurpose())
         .status(loan.getStatus().name())
         .reviewNotes(loan.getReviewNotes())

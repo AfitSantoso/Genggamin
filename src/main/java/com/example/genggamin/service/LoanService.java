@@ -3,10 +3,14 @@ package com.example.genggamin.service;
 import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
+import com.example.genggamin.entity.Customer;
 import com.example.genggamin.entity.Loan;
 import com.example.genggamin.entity.Loan.LoanStatus;
+import com.example.genggamin.entity.Plafond;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.LoanRepository;
+import com.example.genggamin.repository.PlafondRepository;
 import com.example.genggamin.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,10 +23,18 @@ public class LoanService {
 
   private final LoanRepository loanRepository;
   private final UserRepository userRepository;
+  private final CustomerRepository customerRepository;
+  private final PlafondRepository plafondRepository;
 
-  public LoanService(LoanRepository loanRepository, UserRepository userRepository) {
+  public LoanService(
+      LoanRepository loanRepository,
+      UserRepository userRepository,
+      CustomerRepository customerRepository,
+      PlafondRepository plafondRepository) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
+    this.customerRepository = customerRepository;
+    this.plafondRepository = plafondRepository;
   }
 
   @Transactional
@@ -32,11 +44,53 @@ public class LoanService {
             .findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
+    Customer customer =
+        customerRepository
+            .findByUserId(user.getId())
+            .orElseThrow(
+                () ->
+                    new RuntimeException(
+                        "Customer profile not found. Please create your profile first."));
+
+    // Cari plafond berdasarkan customer income
+    List<Plafond> eligiblePlafonds =
+        plafondRepository.findByIncomeRange(customer.getMonthlyIncome());
+
+    if (eligiblePlafonds.isEmpty()) {
+      throw new RuntimeException(
+          "No eligible plafond found for your income: " + customer.getMonthlyIncome());
+    }
+
+    // Ambil plafond pertama yang sesuai (bisa ditambahkan logic lebih kompleks)
+    Plafond plafond = eligiblePlafonds.get(0);
+
+    // Validasi amount tidak melebihi max plafond
+    if (request.getAmount().compareTo(plafond.getMaxAmount()) > 0) {
+      throw new RuntimeException(
+          "Loan amount ("
+              + request.getAmount()
+              + ") exceeds maximum allowed ("
+              + plafond.getMaxAmount()
+              + ") for your income level");
+    }
+
+    // Validasi tenure tidak melebihi max plafond
+    if (request.getTenureMonths() > plafond.getTenorMonth()) {
+      throw new RuntimeException(
+          "Loan tenure ("
+              + request.getTenureMonths()
+              + " months) exceeds maximum allowed ("
+              + plafond.getTenorMonth()
+              + " months) for your income level");
+    }
+
     Loan loan =
         Loan.builder()
-            .user(user)
+            .customer(customer)
+            .plafondId(plafond.getId())
             .amount(request.getAmount())
             .tenureMonths(request.getTenureMonths())
+            .interestRate(plafond.getInterestRate())
             .purpose(request.getPurpose())
             .status(LoanStatus.SUBMITTED)
             .submittedAt(LocalDateTime.now())
@@ -53,7 +107,12 @@ public class LoanService {
             .findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-    return loanRepository.findByUserId(user.getId()).stream()
+    Customer customer =
+        customerRepository
+            .findByUserId(user.getId())
+            .orElseThrow(() -> new RuntimeException("Customer profile not found"));
+
+    return loanRepository.findByCustomerId(customer.getId()).stream()
         .map(LoanResponse::fromEntity)
         .collect(Collectors.toList());
   }
