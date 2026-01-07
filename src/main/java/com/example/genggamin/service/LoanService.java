@@ -3,13 +3,19 @@ package com.example.genggamin.service;
 import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
+import com.example.genggamin.dto.LoanWithApprovalResponse;
+import com.example.genggamin.dto.LoanWithReviewResponse;
 import com.example.genggamin.entity.Customer;
 import com.example.genggamin.entity.Loan;
 import com.example.genggamin.entity.Loan.LoanStatus;
+import com.example.genggamin.entity.LoanApproval;
+import com.example.genggamin.entity.LoanReview;
 import com.example.genggamin.entity.Plafond;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.repository.CustomerRepository;
+import com.example.genggamin.repository.LoanApprovalRepository;
 import com.example.genggamin.repository.LoanRepository;
+import com.example.genggamin.repository.LoanReviewRepository;
 import com.example.genggamin.repository.PlafondRepository;
 import com.example.genggamin.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -25,16 +31,22 @@ public class LoanService {
   private final UserRepository userRepository;
   private final CustomerRepository customerRepository;
   private final PlafondRepository plafondRepository;
+  private final LoanReviewRepository loanReviewRepository;
+  private final LoanApprovalRepository loanApprovalRepository;
 
   public LoanService(
       LoanRepository loanRepository,
       UserRepository userRepository,
       CustomerRepository customerRepository,
-      PlafondRepository plafondRepository) {
+      PlafondRepository plafondRepository,
+      LoanReviewRepository loanReviewRepository,
+      LoanApprovalRepository loanApprovalRepository) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
     this.customerRepository = customerRepository;
     this.plafondRepository = plafondRepository;
+    this.loanReviewRepository = loanReviewRepository;
+    this.loanApprovalRepository = loanApprovalRepository;
   }
 
   @Transactional
@@ -133,13 +145,62 @@ public class LoanService {
       throw new RuntimeException("Loan is not in SUBMITTED status");
     }
 
-    loan.setStatus(LoanStatus.UNDER_REVIEW);
-    loan.setReviewNotes(request.getNotes());
-    loan.setReviewedBy(username);
-    loan.setReviewedAt(LocalDateTime.now());
+    // Get user ID
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    // Determine review status based on action
+    String reviewStatus;
+    LoanStatus newLoanStatus;
+
+    if ("APPROVE".equalsIgnoreCase(request.getAction())) {
+      reviewStatus = "APPROVED";
+      newLoanStatus = LoanStatus.UNDER_REVIEW;
+    } else if ("REJECT".equalsIgnoreCase(request.getAction())) {
+      reviewStatus = "REJECTED";
+      newLoanStatus = LoanStatus.REJECTED;
+    } else {
+      throw new RuntimeException("Invalid action. Must be APPROVE or REJECT");
+    }
+
+    // Save to loan_reviews table
+    LoanReview loanReview =
+        LoanReview.builder()
+            .loanId(loanId)
+            .reviewedBy(user.getId())
+            .reviewNotes(request.getNotes())
+            .reviewStatus(reviewStatus)
+            .reviewedAt(LocalDateTime.now())
+            .build();
+
+    loanReviewRepository.save(loanReview);
+
+    // Update loan status
+    loan.setStatus(newLoanStatus);
+    loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
     return LoanResponse.fromEntity(savedLoan);
+  }
+
+  @Transactional(readOnly = true)
+  public List<LoanWithReviewResponse> getReviewedLoans() {
+    List<Loan> reviewedLoans = loanRepository.findAllReviewedLoans();
+
+    return reviewedLoans.stream()
+        .map(
+            loan -> {
+              LoanReview review =
+                  loanReviewRepository
+                      .findByLoanId(loan.getId())
+                      .orElseThrow(
+                          () ->
+                              new RuntimeException("Review not found for loan id: " + loan.getId()));
+              return LoanWithReviewResponse.fromEntities(loan, review);
+            })
+        .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
@@ -158,20 +219,61 @@ public class LoanService {
       throw new RuntimeException("Loan is not in UNDER_REVIEW status");
     }
 
+    // Get user ID
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    // Determine approval status based on action
+    String approvalStatus;
+    LoanStatus newLoanStatus;
+
     if (request.getApproved() != null && request.getApproved()) {
-      loan.setStatus(LoanStatus.APPROVED);
-      loan.setApprovalNotes(request.getNotes());
-      loan.setApprovedBy(username);
-      loan.setApprovedAt(LocalDateTime.now());
+      approvalStatus = "APPROVED";
+      newLoanStatus = LoanStatus.APPROVED;
     } else {
-      loan.setStatus(LoanStatus.REJECTED);
-      loan.setApprovalNotes(request.getNotes());
-      loan.setApprovedBy(username);
-      loan.setApprovedAt(LocalDateTime.now());
+      approvalStatus = "REJECTED";
+      newLoanStatus = LoanStatus.REJECTED;
     }
+
+    // Save to loan_approvals table
+    LoanApproval loanApproval =
+        LoanApproval.builder()
+            .loanId(loanId)
+            .approvedBy(user.getId())
+            .approvalStatus(approvalStatus)
+            .approvalNotes(request.getNotes())
+            .approvedAt(LocalDateTime.now())
+            .build();
+
+    loanApprovalRepository.save(loanApproval);
+
+    // Update loan status
+    loan.setStatus(newLoanStatus);
+    loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
     return LoanResponse.fromEntity(savedLoan);
+  }
+
+  @Transactional(readOnly = true)
+  public List<LoanWithApprovalResponse> getApprovedLoansWithDetails() {
+    List<Loan> approvedLoans = loanRepository.findAllApprovedLoans();
+
+    return approvedLoans.stream()
+        .map(
+            loan -> {
+              LoanApproval approval =
+                  loanApprovalRepository
+                      .findByLoanId(loan.getId())
+                      .orElseThrow(
+                          () ->
+                              new RuntimeException(
+                                  "Approval not found for loan id: " + loan.getId()));
+              return LoanWithApprovalResponse.fromEntities(loan, approval);
+            })
+        .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)

@@ -198,33 +198,26 @@ Content-Type: application/json
 ```json
 {
   "id": 1,
-  "username": "customer1",
+  "customerId": 5,
   "plafondId": 1,
-  "amount": 9000000,
-  "tenureMonths": 6,
+  "loanAmount": 9000000.0,
+  "tenorMonth": 6,
   "interestRate": 12.5,
   "purpose": "beli ferrari",
   "status": "SUBMITTED",
-  "reviewNotes": null,
-  "approvalNotes": null,
-  "disbursementNotes": null,
-  "submittedAt": "2026-01-06T10:30:00",
-  "reviewedAt": null,
-  "approvedAt": null,
-  "disbursedAt": null,
-  "reviewedBy": null,
-  "approvedBy": null,
-  "disbursedBy": null
+  "submissionDate": "2026-01-06T10:30:00",
+  "createdAt": "2026-01-06T10:30:00",
+  "updatedAt": null
 }
 ```
 
 **💡 Perhatikan:**
 
-- Response menggunakan `tenureMonths` bukan `tenor`
-- `plafondId: 1` otomatis dipilih sistem berdasarkan customer income (5.000.000 = Plafond Bronze)
+- Response menggunakan `tenorMonth` sesuai dengan database
+- `plafondId: 1` otomatis dipilih sistem berdasarkan customer income
 - `interestRate: 12.5` otomatis diambil dari Plafond Bronze
-- `purpose` tetap muncul di response tapi **tidak disimpan ke database** (@Transient)
-- Sistem akan validasi amount ≤ maxAmount dan tenureMonths ≤ tenorMonth dari plafond
+- `customerId` adalah foreign key ke tabel customers
+- Sistem akan validasi loanAmount ≤ maxAmount dan tenorMonth ≤ tenorMonth dari plafond
 
 **⚠️ Simpan `loanId` dari response untuk step selanjutnya!**
 
@@ -254,7 +247,7 @@ Authorization: Bearer <CUSTOMER_TOKEN>
 
 ## Step 5: MARKETING Review Loan (Status: REVIEWED atau REJECTED)
 
-### 5.1 Marketing cek loan yang perlu direview
+### 5.1 Marketing cek loan yang perlu direview (Belum direview)
 
 **GET** `http://localhost:8080/loans/review`
 
@@ -270,15 +263,63 @@ Authorization: Bearer <MARKETING_TOKEN>
 [
   {
     "id": 1,
-    "username": "customer1",
-    "amount": 9000000,
-    "tenureMonths": 6,
+    "customerId": 5,
+    "plafondId": 1,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
+    "interestRate": 12.5,
     "purpose": "beli ferrari",
     "status": "SUBMITTED",
-    "submittedAt": "2026-01-06T10:30:00"
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": null
   }
 ]
 ```
+
+### 5.1.1 Marketing cek loan yang sudah direview (Dengan data review)
+
+**GET** `http://localhost:8080/loans/reviewed`
+
+**Headers:**
+
+```
+Authorization: Bearer <MARKETING_TOKEN>
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "customerId": 5,
+    "plafondId": 1,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
+    "interestRate": 12.5,
+    "purpose": "beli ferrari",
+    "status": "UNDER_REVIEW",
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": "2026-01-06T11:00:00",
+    "reviewId": 1,
+    "reviewedBy": 3,
+    "reviewNotes": "Dokumen lengkap, profil customer baik",
+    "reviewStatus": "APPROVED",
+    "reviewedAt": "2026-01-06T11:00:00"
+  }
+]
+```
+
+**📋 Catatan:**
+
+- Endpoint ini menampilkan loans yang **sudah direview** dengan **JOIN** ke tabel `loan_reviews`
+- Response include data dari:
+  - **Tabel loans**: id, customerId, plafondId, loanAmount, tenorMonth, status, dll
+  - **Tabel loan_reviews**: reviewId, reviewedBy, reviewNotes, reviewStatus, reviewedAt
+- `reviewedBy` adalah user_id dari marketing yang melakukan review
+- `reviewStatus` bisa "APPROVED" atau "REJECTED"
 
 ### 5.2 Marketing melakukan review (APPROVE)
 
@@ -309,20 +350,27 @@ Content-Type: application/json
 }
 ```
 
+**📋 Catatan:**
+
+- Field `notes` akan disimpan di tabel `loan_reviews` (bukan di tabel `loans`)
+- Tabel `loan_reviews` menyimpan: `loan_id`, `reviewed_by`, `review_notes`, `review_status`, `reviewed_at`
+- `review_status` akan berisi "APPROVED" atau "REJECTED" sesuai dengan action
+
 **Response (APPROVE):**
 
 ```json
 {
   "id": 1,
-  "username": "customer1",
-  "amount": 9000000,
-  "tenureMonths": 6,
+  "customerId": 5,
+  "plafondId": 1,
+  "loanAmount": 9000000.0,
+  "tenorMonth": 6,
+  "interestRate": 12.5,
   "purpose": "beli ferrari",
   "status": "UNDER_REVIEW",
-  "reviewNotes": "Dokumen lengkap, profil customer baik, income sesuai. Direkomendasikan untuk approval.",
-  "submittedAt": "2026-01-06T10:30:00",
-  "reviewedAt": "2026-01-06T11:00:00",
-  "reviewedBy": "marketing1"
+  "submissionDate": "2026-01-06T10:30:00",
+  "createdAt": "2026-01-06T10:30:00",
+  "updatedAt": "2026-01-06T11:00:00"
 }
 ```
 
@@ -330,7 +378,7 @@ Content-Type: application/json
 
 ## Step 6: BRANCH_MANAGER Approve Loan (Status: APPROVED atau REJECTED)
 
-### 6.1 Branch Manager cek loan yang perlu approval
+### 6.1 Branch Manager cek loan yang perlu approval (Belum di-approve)
 
 **GET** `http://localhost:8080/loans/approve`
 
@@ -346,16 +394,63 @@ Authorization: Bearer <BRANCH_MANAGER_TOKEN>
 [
   {
     "id": 1,
-    "username": "customer1",
-    "amount": 9000000,
-    "tenureMonths": 6,
+    "customerId": 5,
+    "plafondId": 1,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
+    "interestRate": 12.5,
     "purpose": "beli ferrari",
     "status": "UNDER_REVIEW",
-    "reviewedBy": "marketing1",
-    "reviewNotes": "Dokumen lengkap, profil customer baik"
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": "2026-01-06T11:00:00"
   }
 ]
 ```
+
+### 6.1.1 Branch Manager cek loan yang sudah di-approve (Dengan data approval)
+
+**GET** `http://localhost:8080/loans/approved`
+
+**Headers:**
+
+```
+Authorization: Bearer <BRANCH_MANAGER_TOKEN>
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "customerId": 5,
+    "plafondId": 1,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
+    "interestRate": 12.5,
+    "purpose": "beli ferrari",
+    "status": "APPROVED",
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": "2026-01-06T14:00:00",
+    "approvalId": 1,
+    "approvedBy": 4,
+    "approvalStatus": "APPROVED",
+    "approvalNotes": "Loan disetujui, dapat dilanjutkan ke pencairan",
+    "approvedAt": "2026-01-06T14:00:00"
+  }
+]
+```
+
+**📋 Catatan:**
+
+- Endpoint ini menampilkan loans yang **sudah di-approve/reject** dengan **JOIN** ke tabel `loan_approvals`
+- Response include data dari:
+  - **Tabel loans**: id, customerId, plafondId, loanAmount, tenorMonth, status, dll
+  - **Tabel loan_approvals**: approvalId, approvedBy, approvalStatus, approvalNotes, approvedAt
+- `approvedBy` adalah user_id dari branch manager yang melakukan approval
+- `approvalStatus` bisa "APPROVED" atau "REJECTED"
 
 ### 6.2 Branch Manager melakukan approval
 
@@ -372,7 +467,7 @@ Content-Type: application/json
 
 ```json
 {
-  "action": "APPROVE",
+  "approved": true,
   "notes": "Loan disetujui, dapat dilanjutkan ke pencairan. Amount dan tenor sesuai policy."
 }
 ```
@@ -381,28 +476,32 @@ Content-Type: application/json
 
 ```json
 {
-  "action": "REJECT",
+  "approved": false,
   "notes": "Loan ditolak karena tidak sesuai dengan risk appetite perusahaan."
 }
 ```
+
+**📋 Catatan:**
+
+- Field `notes` akan disimpan di tabel `loan_approvals` (bukan di tabel `loans`)
+- Tabel `loan_approvals` menyimpan: `loan_id`, `approved_by`, `approval_status`, `approval_notes`, `approved_at`
+- `approval_status` akan berisi "APPROVED" atau "REJECTED" sesuai dengan field `approved` (true/false)
 
 **Response (APPROVE):**
 
 ```json
 {
   "id": 1,
-  "username": "customer1",
-  "amount": 9000000,
-  "tenureMonths": 6,
+  "customerId": 5,
+  "plafondId": 1,
+  "loanAmount": 9000000.0,
+  "tenorMonth": 6,
+  "interestRate": 12.5,
   "purpose": "beli ferrari",
   "status": "APPROVED",
-  "reviewNotes": "Dokumen lengkap, profil customer baik, income sesuai.",
-  "approvalNotes": "Loan disetujui, dapat dilanjutkan ke pencairan. Amount dan tenor sesuai policy.",
-  "submittedAt": "2026-01-06T10:30:00",
-  "reviewedAt": "2026-01-06T11:00:00",
-  "reviewedBy": "marketing1",
-  "approvedAt": "2026-01-06T14:00:00",
-  "approvedBy": "manager1"
+  "submissionDate": "2026-01-06T10:30:00",
+  "createdAt": "2026-01-06T10:30:00",
+  "updatedAt": "2026-01-06T14:00:00"
 }
 ```
 
@@ -426,13 +525,16 @@ Authorization: Bearer <BACK_OFFICE_TOKEN>
 [
   {
     "id": 1,
-    "username": "customer1",
-    "amount": 9000000,
-    "tenureMonths": 6,
+    "customerId": 5,
+    "plafondId": 1,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
+    "interestRate": 12.5,
     "purpose": "beli ferrari",
     "status": "APPROVED",
-    "approvedBy": "manager1",
-    "approvalNotes": "Loan disetujui, dapat dilanjutkan ke pencairan."
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": "2026-01-06T14:00:00"
   }
 ]
 ```
@@ -462,21 +564,16 @@ Content-Type: application/json
 ```json
 {
   "id": 1,
-  "username": "customer1",
-  "amount": 9000000,
-  "tenureMonths": 6,
+  "customerId": 5,
+  "plafondId": 1,
+  "loanAmount": 9000000.0,
+  "tenorMonth": 6,
+  "interestRate": 12.5,
   "purpose": "beli ferrari",
   "status": "DISBURSED",
-  "reviewNotes": "Dokumen lengkap, profil customer baik, income sesuai.",
-  "approvalNotes": "Loan disetujui, dapat dilanjutkan ke pencairan.",
-  "disbursementNotes": "Dana telah ditransfer ke rekening customer xxxxxxxxx123 sebesar Rp 9.000.000. Nomor referensi: TRX20260106001.",
-  "submittedAt": "2026-01-06T10:30:00",
-  "reviewedAt": "2026-01-06T11:00:00",
-  "reviewedBy": "marketing1",
-  "approvedAt": "2026-01-06T14:00:00",
-  "approvedBy": "manager1",
-  "disbursedAt": "2026-01-06T16:00:00",
-  "disbursedBy": "backoffice1"
+  "submissionDate": "2026-01-06T10:30:00",
+  "createdAt": "2026-01-06T10:30:00",
+  "updatedAt": "2026-01-06T16:00:00"
 }
 ```
 
@@ -500,23 +597,16 @@ Authorization: Bearer <CUSTOMER_TOKEN>
 [
   {
     "id": 1,
-    "username": "customer1",
+    "customerId": 5,
     "plafondId": 1,
-    "amount": 9000000,
-    "tenureMonths": 6,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
     "interestRate": 12.5,
     "purpose": "beli ferrari",
     "status": "DISBURSED",
-    "reviewNotes": "Dokumen lengkap, profil customer baik, income sesuai.",
-    "approvalNotes": "Loan disetujui, dapat dilanjutkan ke pencairan.",
-    "disbursementNotes": "Dana telah ditransfer ke rekening customer xxxxxxxxx123 sebesar Rp 9.000.000.",
-    "submittedAt": "2026-01-06T10:30:00",
-    "reviewedAt": "2026-01-06T11:00:00",
-    "reviewedBy": "marketing1",
-    "approvedAt": "2026-01-06T14:00:00",
-    "approvedBy": "manager1",
-    "disbursedAt": "2026-01-06T16:00:00",
-    "disbursedBy": "backoffice1"
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": "2026-01-06T16:00:00"
   }
 ]
 ```
@@ -578,7 +668,8 @@ Authorization: Bearer <CUSTOMER_TOKEN>
 │  └─ Get My Loans
 │
 ├─ 📁 4. Review Loan (MARKETING)
-│  ├─ Get Loans to Review
+│  ├─ Get Loans to Review (SUBMITTED)
+│  ├─ Get Reviewed Loans (with JOIN)
 │  ├─ Approve Loan
 │  └─ Reject Loan
 │
@@ -633,9 +724,9 @@ Authorization: Bearer <CUSTOMER_TOKEN>
    - Test dengan data yang tidak valid
 
 5. **Validasi Business Rules**
-   - `amount` harus BigDecimal, sesuai dengan maxLoanAmount dari plafond customer
-   - `tenureMonths` harus Long, sesuai dengan maxTenor dari plafond customer
-   - `purpose` adalah field @Transient (tidak disimpan ke database, hanya untuk tampilan)
+   - `loanAmount` harus decimal(18,2), sesuai dengan maxLoanAmount dari plafond customer
+   - `tenorMonth` harus bigint, sesuai dengan maxTenor dari plafond customer
+   - `purpose` adalah varchar(500) yang disimpan ke database
    - `plafondId` otomatis ditentukan sistem berdasarkan customer monthlyIncome
    - `interestRate` otomatis diambil dari plafond, tidak bisa diubah customer
 
