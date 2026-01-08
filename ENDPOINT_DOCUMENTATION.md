@@ -47,12 +47,12 @@ Controller untuk menangani autentikasi dan otorisasi user.
   "username": "string",
   "password": "string",
   "email": "string",
-  "roles": ["ROLE_NAME"]
+  "fullName": "string"
 }
 ```
 
 **Response**: ID user yang baru dibuat  
-**Fungsi**: Membuat user baru dengan role yang ditentukan
+**Fungsi**: Membuat user baru dengan role default CUSTOMER. Field fullName akan digunakan untuk data customer. Field `roles` bersifat optional - jika tidak diisi, otomatis akan menjadi CUSTOMER
 
 ---
 
@@ -211,12 +211,10 @@ Controller untuk mengelola data profil customer/nasabah.
 ```json
 {
   "nik": "string",
-  "fullName": "string",
   "dateOfBirth": "yyyy-MM-dd",
   "placeOfBirth": "string",
   "address": "string",
   "phone": "string",
-  "email": "string",
   "monthlyIncome": "decimal",
   "occupation": "string",
   "emergencyContact": {
@@ -228,7 +226,7 @@ Controller untuk mengelola data profil customer/nasabah.
 ```
 
 **Response**: Data customer yang tersimpan  
-**Fungsi**: Jika user belum punya data customer, akan create baru. Jika sudah ada, akan update data yang ada
+**Fungsi**: Jika user belum punya data customer, akan create baru. Jika sudah ada, akan update data yang ada. Field email dan fullName diambil dari tabel users (saat register)
 
 ---
 

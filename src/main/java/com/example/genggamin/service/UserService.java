@@ -65,7 +65,7 @@ public class UserService {
     dto.setId(user.getId());
     dto.setUsername(user.getUsername());
     dto.setEmail(user.getEmail());
-    dto.setPhone(user.getPhone());
+    dto.setFullName(user.getFullName());
     dto.setIsActive(user.getIsActive());
     // Convert roles Set<Role> to List<String> role names
     dto.setRoles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()));
@@ -150,9 +150,9 @@ public class UserService {
     User user = new User();
     user.setUsername(req.getUsername());
     user.setEmail(req.getEmail());
+    user.setFullName(req.getFullName());
     user.setPassword(passwordEncoder.encode(req.getPassword()));
     user.setIsActive(true);
-    user.setPhone(req.getPhone());
 
     // Handle roles assignment
     if (req.getRoles() != null && !req.getRoles().isEmpty()) {
@@ -207,9 +207,9 @@ public class UserService {
     User user = new User();
     user.setUsername(req.getUsername());
     user.setEmail(req.getEmail());
+    user.setFullName(req.getFullName());
     user.setPassword(passwordEncoder.encode(req.getPassword()));
     user.setIsActive(req.getIsActive() != null ? req.getIsActive() : true);
-    user.setPhone(req.getPhone());
 
     // Handle roles assignment
     if (req.getRoles() != null && !req.getRoles().isEmpty()) {

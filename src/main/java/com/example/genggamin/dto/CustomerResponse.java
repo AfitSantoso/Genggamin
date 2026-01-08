@@ -21,8 +21,9 @@ public class CustomerResponse {
   private String nik;
   private String address;
   private LocalDate dateOfBirth;
+  private String placeOfBirth;
   private BigDecimal monthlyIncome;
-  private String customerFullName; // from Customer table
+  private String occupation;
   private String customerPhone;
   private String currentAddress;
   private String motherMaidenName;

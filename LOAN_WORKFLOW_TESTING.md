@@ -103,19 +103,19 @@ Content-Type: application/json
 
 ```json
 {
-  "nik": "3201234567890123",
-  "fullName": "John Doe Customer",
+  "nik": "3201234567892123",
   "dateOfBirth": "1990-05-15",
   "placeOfBirth": "Jakarta",
-  "address": "Jl. Sudirman No. 123, Jakarta Pusat",
+  "address": "Jl. Sudirman No. 123",
+  "currentAddress": "Jl. Thamrin No. 456",
   "phone": "081234567890",
-  "email": "customer1@example.com",
   "monthlyIncome": 15000000,
   "occupation": "Software Engineer",
+  "motherMaidenName": "Siti Aminah",
   "emergencyContact": {
     "name": "Jane Doe",
-    "relationship": "Sister",
-    "phone": "081234567891"
+    "phone": "081234567891",
+    "relationship": "Istri"
   }
 }
 ```
@@ -539,6 +539,64 @@ Authorization: Bearer <BACK_OFFICE_TOKEN>
 ]
 ```
 
+### 7.1.1 Back Office cek loan yang sudah dicairkan (Dengan data disbursement)
+
+**GET** `http://localhost:8080/loans/disbursed`
+
+**Headers:**
+
+```
+Authorization: Bearer <BACK_OFFICE_TOKEN>
+```
+
+**Response (Jika ada data):**
+
+```json
+[
+  {
+    "id": 1,
+    "customerId": 5,
+    "plafondId": 1,
+    "loanAmount": 9000000.0,
+    "tenorMonth": 6,
+    "interestRate": 12.5,
+    "purpose": "beli ferrari",
+    "status": "DISBURSED",
+    "submissionDate": "2026-01-06T10:30:00",
+    "createdAt": "2026-01-06T10:30:00",
+    "updatedAt": "2026-01-06T16:00:00",
+    "disbursementId": 1,
+    "disbursedBy": 6,
+    "disbursementAmount": 9000000.0,
+    "disbursementDate": "2026-01-06T16:00:00",
+    "bankAccount": "1234567890123",
+    "disbursementStatus": "COMPLETED"
+  }
+]
+```
+
+**Response (Jika tidak ada data):**
+
+```json
+{
+  "success": true,
+  "message": "Disbursed loans retrieved successfully",
+  "data": []
+}
+```
+
+**📋 Catatan:**
+
+- Endpoint ini menampilkan loans yang **sudah dicairkan** dengan **JOIN** ke tabel `loan_disbursements`
+- Response include data dari:
+  - **Tabel loans**: id, customerId, plafondId, loanAmount, tenorMonth, status, dll
+  - **Tabel loan_disbursements**: disbursementId, disbursedBy, disbursementAmount, disbursementDate, bankAccount, disbursementStatus
+- `disbursedBy` adalah user_id dari back office yang melakukan pencairan
+- `disbursementAmount` adalah jumlah yang dicairkan (sama dengan loanAmount)
+- `bankAccount` adalah nomor rekening tujuan pencairan
+- `disbursementStatus` adalah status disbursement (e.g., "COMPLETED")
+- **Jika tidak ada data disbursement, akan return empty array `[]` (tidak error)**
+
 ### 7.2 Back Office melakukan pencairan
 
 **POST** `http://localhost:8080/loans/disburse/1`
@@ -555,9 +613,21 @@ Content-Type: application/json
 ```json
 {
   "action": "DISBURSE",
-  "notes": "Dana telah ditransfer ke rekening customer xxxxxxxxx123 sebesar Rp 75.000.000. Nomor referensi: TRX20260106001."
+  "bankAccount": "1234567890123"
 }
 ```
+
+**📋 Catatan Penting:**
+
+- Data disbursement akan disimpan di tabel `loan_disbursements` (bukan di tabel `loans`)
+- Tabel `loan_disbursements` menyimpan:
+  - `loan_id`: ID pinjaman yang dicairkan
+  - `disbursed_by`: user_id dari back office yang melakukan pencairan
+  - `disbursement_amount`: Jumlah yang dicairkan (dari loan.loanAmount)
+  - `disbursement_date`: Waktu pencairan (auto-generated)
+  - `bank_account`: Nomor rekening tujuan pencairan
+  - `status`: Status disbursement (e.g., "COMPLETED")
+- Setiap loan hanya bisa dicairkan sekali (constraint UNIQUE pada loan_id)
 
 **Response:**
 
@@ -680,6 +750,7 @@ Authorization: Bearer <CUSTOMER_TOKEN>
 │
 ├─ 📁 6. Disburse Loan (BACK_OFFICE)
 │  ├─ Get Loans to Disburse
+│  ├─ Get Disbursed Loans (with JOIN)
 │  └─ Disburse Loan
 │
 └─ 📁 7. Verification

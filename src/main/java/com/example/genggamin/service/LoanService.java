@@ -4,16 +4,19 @@ import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
 import com.example.genggamin.dto.LoanWithApprovalResponse;
+import com.example.genggamin.dto.LoanWithDisbursementResponse;
 import com.example.genggamin.dto.LoanWithReviewResponse;
 import com.example.genggamin.entity.Customer;
 import com.example.genggamin.entity.Loan;
 import com.example.genggamin.entity.Loan.LoanStatus;
 import com.example.genggamin.entity.LoanApproval;
+import com.example.genggamin.entity.LoanDisbursement;
 import com.example.genggamin.entity.LoanReview;
 import com.example.genggamin.entity.Plafond;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.LoanApprovalRepository;
+import com.example.genggamin.repository.LoanDisbursementRepository;
 import com.example.genggamin.repository.LoanRepository;
 import com.example.genggamin.repository.LoanReviewRepository;
 import com.example.genggamin.repository.PlafondRepository;
@@ -33,6 +36,7 @@ public class LoanService {
   private final PlafondRepository plafondRepository;
   private final LoanReviewRepository loanReviewRepository;
   private final LoanApprovalRepository loanApprovalRepository;
+  private final LoanDisbursementRepository loanDisbursementRepository;
 
   public LoanService(
       LoanRepository loanRepository,
@@ -40,13 +44,15 @@ public class LoanService {
       CustomerRepository customerRepository,
       PlafondRepository plafondRepository,
       LoanReviewRepository loanReviewRepository,
-      LoanApprovalRepository loanApprovalRepository) {
+      LoanApprovalRepository loanApprovalRepository,
+      LoanDisbursementRepository loanDisbursementRepository) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
     this.customerRepository = customerRepository;
     this.plafondRepository = plafondRepository;
     this.loanReviewRepository = loanReviewRepository;
     this.loanApprovalRepository = loanApprovalRepository;
+    this.loanDisbursementRepository = loanDisbursementRepository;
   }
 
   @Transactional
@@ -64,17 +70,33 @@ public class LoanService {
                     new RuntimeException(
                         "Customer profile not found. Please create your profile first."));
 
-    // Cari plafond berdasarkan customer income
+    // Validasi plafondId wajib diisi
+    if (request.getPlafondId() == null) {
+      throw new RuntimeException("Plafond ID is required. Please select a plafond.");
+    }
+
+    // Ambil plafond berdasarkan ID yang dipilih customer
+    Plafond plafond =
+        plafondRepository
+            .findById(request.getPlafondId())
+            .orElseThrow(() -> new RuntimeException("Plafond not found with ID: " + request.getPlafondId()));
+
+    // Validasi plafond aktif
+    if (!plafond.getIsActive()) {
+      throw new RuntimeException("Selected plafond is not active");
+    }
+
+    // Validasi plafond eligible untuk customer income
     List<Plafond> eligiblePlafonds =
         plafondRepository.findByIncomeRange(customer.getMonthlyIncome());
 
-    if (eligiblePlafonds.isEmpty()) {
-      throw new RuntimeException(
-          "No eligible plafond found for your income: " + customer.getMonthlyIncome());
-    }
+    boolean isEligible = eligiblePlafonds.stream()
+        .anyMatch(p -> p.getId().equals(plafond.getId()));
 
-    // Ambil plafond pertama yang sesuai (bisa ditambahkan logic lebih kompleks)
-    Plafond plafond = eligiblePlafonds.get(0);
+    if (!isEligible) {
+      throw new RuntimeException(
+          "Selected plafond is not eligible for your income level (Rp " + customer.getMonthlyIncome() + ")");
+    }
 
     // Validasi amount tidak melebihi max plafond
     if (request.getAmount().compareTo(plafond.getMaxAmount()) > 0) {
@@ -83,7 +105,7 @@ public class LoanService {
               + request.getAmount()
               + ") exceeds maximum allowed ("
               + plafond.getMaxAmount()
-              + ") for your income level");
+              + ") for selected plafond");
     }
 
     // Validasi tenure tidak melebihi max plafond
@@ -93,7 +115,7 @@ public class LoanService {
               + request.getTenureMonths()
               + " months) exceeds maximum allowed ("
               + plafond.getTenorMonth()
-              + " months) for your income level");
+              + " months) for selected plafond");
     }
 
     Loan loan =
@@ -112,6 +134,38 @@ public class LoanService {
     return LoanResponse.fromEntity(savedLoan);
   }
 
+  /**
+   * Populate review and approval data from loan_reviews and loan_approvals tables into Loan
+   * @Transient fields
+   */
+  private void populateLoanDetails(Loan loan) {
+    // Populate review data
+    loanReviewRepository
+        .findByLoanId(loan.getId())
+        .ifPresent(
+            review -> {
+              loan.setReviewNotes(review.getReviewNotes());
+              loan.setReviewedAt(review.getReviewedAt());
+              // Get reviewer username
+              userRepository
+                  .findById(review.getReviewedBy())
+                  .ifPresent(user -> loan.setReviewedBy(user.getUsername()));
+            });
+
+    // Populate approval data
+    loanApprovalRepository
+        .findByLoanId(loan.getId())
+        .ifPresent(
+            approval -> {
+              loan.setApprovalNotes(approval.getApprovalNotes());
+              loan.setApprovedAt(approval.getApprovedAt());
+              // Get approver username
+              userRepository
+                  .findById(approval.getApprovedBy())
+                  .ifPresent(user -> loan.setApprovedBy(user.getUsername()));
+            });
+  }
+
   @Transactional(readOnly = true)
   public List<LoanResponse> getMyLoans(String username) {
     User user =
@@ -125,14 +179,22 @@ public class LoanService {
             .orElseThrow(() -> new RuntimeException("Customer profile not found"));
 
     return loanRepository.findByCustomerId(customer.getId()).stream()
-        .map(LoanResponse::fromEntity)
+        .map(
+            loan -> {
+              populateLoanDetails(loan);
+              return LoanResponse.fromEntity(loan);
+            })
         .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public List<LoanResponse> getLoansForReview() {
     return loanRepository.findByStatus(LoanStatus.SUBMITTED).stream()
-        .map(LoanResponse::fromEntity)
+        .map(
+            loan -> {
+              populateLoanDetails(loan);
+              return LoanResponse.fromEntity(loan);
+            })
         .collect(Collectors.toList());
   }
 
@@ -182,7 +244,28 @@ public class LoanService {
     loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
-    return LoanResponse.fromEntity(savedLoan);
+    
+    // Get review data to include in response
+    LoanReview savedReview = loanReviewRepository
+        .findByLoanId(loanId)
+        .orElse(null);
+    
+    LoanResponse response = LoanResponse.fromEntity(savedLoan);
+    
+    // Add review information if exists
+    if (savedReview != null) {
+      response.setReviewNotes(savedReview.getReviewNotes());
+      response.setReviewedAt(savedReview.getReviewedAt());
+      
+      // Convert user ID to username
+      User reviewer = userRepository.findById(savedReview.getReviewedBy())
+          .orElse(null);
+      if (reviewer != null) {
+        response.setReviewedBy(reviewer.getUsername());
+      }
+    }
+    
+    return response;
   }
 
   @Transactional(readOnly = true)
@@ -206,7 +289,11 @@ public class LoanService {
   @Transactional(readOnly = true)
   public List<LoanResponse> getLoansForApproval() {
     return loanRepository.findByStatus(LoanStatus.UNDER_REVIEW).stream()
-        .map(LoanResponse::fromEntity)
+        .map(
+            loan -> {
+              populateLoanDetails(loan);
+              return LoanResponse.fromEntity(loan);
+            })
         .collect(Collectors.toList());
   }
 
@@ -254,7 +341,28 @@ public class LoanService {
     loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
-    return LoanResponse.fromEntity(savedLoan);
+    
+    // Get approval data to include in response
+    LoanApproval savedApproval = loanApprovalRepository
+        .findByLoanId(loanId)
+        .orElse(null);
+    
+    LoanResponse response = LoanResponse.fromEntity(savedLoan);
+    
+    // Add approval information if exists
+    if (savedApproval != null) {
+      response.setApprovalNotes(savedApproval.getApprovalNotes());
+      response.setApprovedAt(savedApproval.getApprovedAt());
+      
+      // Convert user ID to username
+      User approver = userRepository.findById(savedApproval.getApprovedBy())
+          .orElse(null);
+      if (approver != null) {
+        response.setApprovedBy(approver.getUsername());
+      }
+    }
+    
+    return response;
   }
 
   @Transactional(readOnly = true)
@@ -279,7 +387,11 @@ public class LoanService {
   @Transactional(readOnly = true)
   public List<LoanResponse> getLoansForDisbursement() {
     return loanRepository.findByStatus(LoanStatus.APPROVED).stream()
-        .map(LoanResponse::fromEntity)
+        .map(
+            loan -> {
+              populateLoanDetails(loan);
+              return LoanResponse.fromEntity(loan);
+            })
         .collect(Collectors.toList());
   }
 
@@ -292,19 +404,120 @@ public class LoanService {
       throw new RuntimeException("Loan is not in APPROVED status");
     }
 
+    // Check if loan already disbursed
+    if (loanDisbursementRepository.existsByLoanId(loanId)) {
+      throw new RuntimeException("Loan has already been disbursed");
+    }
+
+    // Validate action
+    if (!"DISBURSE".equalsIgnoreCase(request.getAction())) {
+      throw new RuntimeException("Invalid action. Must be DISBURSE");
+    }
+
+    // Validate bank account
+    if (request.getBankAccount() == null || request.getBankAccount().trim().isEmpty()) {
+      throw new RuntimeException("Bank account is required for disbursement");
+    }
+
+    // Get user ID
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    // Save to loan_disbursements table
+    LoanDisbursement disbursement =
+        new LoanDisbursement(
+            loanId,
+            user.getId(),
+            loan.getAmount(),
+            request.getBankAccount(),
+            "COMPLETED");
+
+    loanDisbursementRepository.save(disbursement);
+
+    // Update loan status
     loan.setStatus(LoanStatus.DISBURSED);
-    loan.setDisbursementNotes(request.getNotes());
-    loan.setDisbursedBy(username);
-    loan.setDisbursedAt(LocalDateTime.now());
+    loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
-    return LoanResponse.fromEntity(savedLoan);
+    
+    // Get disbursement data to include in response
+    LoanDisbursement savedDisbursement = loanDisbursementRepository
+        .findByLoanId(loanId)
+        .orElse(null);
+    
+    LoanResponse response = LoanResponse.fromEntity(savedLoan);
+    
+    // Add disbursement information if exists
+    if (savedDisbursement != null) {
+      response.setDisbursedAt(savedDisbursement.getDisbursementDate());
+      
+      // Convert user ID to username
+      User disburser = userRepository.findById(savedDisbursement.getDisbursedBy())
+          .orElse(null);
+      if (disburser != null) {
+        response.setDisbursedBy(disburser.getUsername());
+      }
+    }
+    
+    return response;
+  }
+
+  @Transactional(readOnly = true)
+  public List<LoanWithDisbursementResponse> getDisbursedLoansWithDetails() {
+    List<Loan> disbursedLoans = loanRepository.findByStatus(LoanStatus.DISBURSED);
+
+    return disbursedLoans.stream()
+        .map(
+            loan -> {
+              // Find disbursement, return null if not found (will be filtered out)
+              LoanDisbursement disbursement =
+                  loanDisbursementRepository
+                      .findByLoanId(loan.getId())
+                      .orElse(null);
+              
+              // Skip loan if no disbursement data found
+              if (disbursement == null) {
+                return null;
+              }
+              
+              LoanWithDisbursementResponse response = new LoanWithDisbursementResponse();
+              // Set loan fields
+              response.setId(loan.getId());
+              response.setCustomerId(loan.getCustomer().getId());
+              response.setPlafondId(loan.getPlafondId());
+              response.setLoanAmount(loan.getAmount());
+              response.setTenorMonth(loan.getTenureMonths());
+              response.setInterestRate(loan.getInterestRate());
+              response.setPurpose(loan.getPurpose());
+              response.setStatus(loan.getStatus().toString());
+              response.setSubmissionDate(loan.getSubmittedAt());
+              response.setCreatedAt(loan.getCreatedAt());
+              response.setUpdatedAt(loan.getUpdatedAt());
+              
+              // Set disbursement fields
+              response.setDisbursementId(disbursement.getId());
+              response.setDisbursedBy(disbursement.getDisbursedBy());
+              response.setDisbursementAmount(disbursement.getDisbursementAmount());
+              response.setDisbursementDate(disbursement.getDisbursementDate());
+              response.setBankAccount(disbursement.getBankAccount());
+              response.setDisbursementStatus(disbursement.getStatus());
+              
+              return response;
+            })
+        .filter(response -> response != null) // Filter out null responses
+        .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public List<LoanResponse> getAllLoans() {
     return loanRepository.findAll().stream()
-        .map(LoanResponse::fromEntity)
+        .map(
+            loan -> {
+              populateLoanDetails(loan);
+              return LoanResponse.fromEntity(loan);
+            })
         .collect(Collectors.toList());
   }
 
@@ -312,6 +525,7 @@ public class LoanService {
   public LoanResponse getLoanById(Long loanId) {
     Loan loan =
         loanRepository.findById(loanId).orElseThrow(() -> new RuntimeException("Loan not found"));
+    populateLoanDetails(loan);
     return LoanResponse.fromEntity(loan);
   }
 }

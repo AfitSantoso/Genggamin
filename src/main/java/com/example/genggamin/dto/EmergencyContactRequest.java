@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EmergencyContactRequest {
 
-  private String contactName;
-  private String contactPhone;
+  private String name;
+  private String phone;
   private String relationship; // ORANG_TUA, SAUDARA, PASANGAN, TEMAN
 }

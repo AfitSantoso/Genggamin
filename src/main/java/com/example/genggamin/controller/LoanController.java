@@ -5,6 +5,7 @@ import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
 import com.example.genggamin.dto.LoanWithApprovalResponse;
+import com.example.genggamin.dto.LoanWithDisbursementResponse;
 import com.example.genggamin.dto.LoanWithReviewResponse;
 import com.example.genggamin.service.LoanService;
 import java.util.List;
@@ -214,6 +215,28 @@ public class LoanController {
       return ResponseEntity.badRequest()
           .body(
               ApiResponse.<List<LoanResponse>>builder()
+                  .success(false)
+                  .message(e.getMessage())
+                  .build());
+    }
+  }
+
+  /** BACK_OFFICE/ADMIN: Get all disbursed loans with disbursement details */
+  @GetMapping("/disbursed")
+  @PreAuthorize("hasAnyRole('BACK_OFFICE', 'ADMIN')")
+  public ResponseEntity<ApiResponse<List<LoanWithDisbursementResponse>>> getDisbursedLoans() {
+    try {
+      List<LoanWithDisbursementResponse> loans = loanService.getDisbursedLoansWithDetails();
+      return ResponseEntity.ok(
+          ApiResponse.<List<LoanWithDisbursementResponse>>builder()
+              .success(true)
+              .message("Disbursed loans retrieved successfully")
+              .data(loans)
+              .build());
+    } catch (Exception e) {
+      return ResponseEntity.badRequest()
+          .body(
+              ApiResponse.<List<LoanWithDisbursementResponse>>builder()
                   .success(false)
                   .message(e.getMessage())
                   .build());

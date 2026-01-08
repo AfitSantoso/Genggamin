@@ -31,23 +31,26 @@ public class Customer {
   @Column(name = "nik", nullable = false, unique = true, length = 20)
   private String nik;
 
-  @Column(name = "address")
-  private String address;
-
   @Column(name = "date_of_birth")
   private LocalDate dateOfBirth;
 
-  @Column(name = "monthly_income", precision = 18, scale = 2)
-  private BigDecimal monthlyIncome;
+  @Column(name = "place_of_birth", length = 100)
+  private String placeOfBirth;
 
-  @Column(name = "full_name", length = 150)
-  private String fullName;
+  @Column(name = "address")
+  private String address;
+
+  @Column(name = "current_address")
+  private String currentAddress;
 
   @Column(name = "phone", length = 20)
   private String phone;
 
-  @Column(name = "current_address")
-  private String currentAddress;
+  @Column(name = "monthly_income", precision = 18, scale = 2)
+  private BigDecimal monthlyIncome;
+
+  @Column(name = "occupation", length = 100)
+  private String occupation;
 
   @Column(name = "mother_maiden_name", length = 150)
   private String motherMaidenName;

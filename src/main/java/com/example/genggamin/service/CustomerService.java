@@ -43,33 +43,31 @@ public class CustomerService {
 
     customer.setUserId(userId);
     customer.setNik(request.getNik());
-    customer.setAddress(request.getAddress());
     customer.setDateOfBirth(request.getDateOfBirth());
-    customer.setMonthlyIncome(request.getMonthlyIncome());
-    customer.setFullName(request.getFullName());
-    customer.setPhone(request.getPhone());
+    customer.setPlaceOfBirth(request.getPlaceOfBirth());
+    customer.setAddress(request.getAddress());
     customer.setCurrentAddress(request.getCurrentAddress());
+    customer.setPhone(request.getPhone());
+    customer.setMonthlyIncome(request.getMonthlyIncome());
+    customer.setOccupation(request.getOccupation());
     customer.setMotherMaidenName(request.getMotherMaidenName());
 
     customer = customerRepository.save(customer);
 
-    // Update emergency contacts
-    if (request.getEmergencyContacts() != null && !request.getEmergencyContacts().isEmpty()) {
+    // Update emergency contact (singular)
+    if (request.getEmergencyContact() != null) {
       // Hapus kontak darurat yang lama
       emergencyContactRepository.deleteByCustomerId(customer.getId());
       emergencyContactRepository.flush();
 
       // Tambahkan kontak darurat yang baru
-      List<EmergencyContact> emergencyContacts = new ArrayList<>();
-      for (EmergencyContactRequest ecRequest : request.getEmergencyContacts()) {
-        EmergencyContact ec = new EmergencyContact();
-        ec.setCustomerId(customer.getId());
-        ec.setContactName(ecRequest.getContactName());
-        ec.setContactPhone(ecRequest.getContactPhone());
-        ec.setRelationship(ecRequest.getRelationship());
-        emergencyContacts.add(ec);
-      }
-      emergencyContactRepository.saveAll(emergencyContacts);
+      EmergencyContactRequest ecRequest = request.getEmergencyContact();
+      EmergencyContact ec = new EmergencyContact();
+      ec.setCustomerId(customer.getId());
+      ec.setContactName(ecRequest.getName());
+      ec.setContactPhone(ecRequest.getPhone());
+      ec.setRelationship(ecRequest.getRelationship());
+      emergencyContactRepository.save(ec);
     }
 
     return mapToCustomerResponse(customer, user);
@@ -97,11 +95,13 @@ public class CustomerService {
     response.setUserId(customer.getUserId());
     response.setUsername(user.getUsername());
     response.setEmail(user.getEmail());
+    response.setFullName(user.getFullName());
     response.setNik(customer.getNik());
     response.setAddress(customer.getAddress());
     response.setDateOfBirth(customer.getDateOfBirth());
+    response.setPlaceOfBirth(customer.getPlaceOfBirth());
     response.setMonthlyIncome(customer.getMonthlyIncome());
-    response.setCustomerFullName(customer.getFullName());
+    response.setOccupation(customer.getOccupation());
     response.setCustomerPhone(customer.getPhone());
     response.setCurrentAddress(customer.getCurrentAddress());
     response.setMotherMaidenName(customer.getMotherMaidenName());
