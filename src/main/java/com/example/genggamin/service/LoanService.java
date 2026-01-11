@@ -37,6 +37,7 @@ public class LoanService {
   private final LoanReviewRepository loanReviewRepository;
   private final LoanApprovalRepository loanApprovalRepository;
   private final LoanDisbursementRepository loanDisbursementRepository;
+  private final EmailService emailService;
 
   public LoanService(
       LoanRepository loanRepository,
@@ -45,7 +46,8 @@ public class LoanService {
       PlafondRepository plafondRepository,
       LoanReviewRepository loanReviewRepository,
       LoanApprovalRepository loanApprovalRepository,
-      LoanDisbursementRepository loanDisbursementRepository) {
+      LoanDisbursementRepository loanDisbursementRepository,
+      EmailService emailService) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
     this.customerRepository = customerRepository;
@@ -53,6 +55,7 @@ public class LoanService {
     this.loanReviewRepository = loanReviewRepository;
     this.loanApprovalRepository = loanApprovalRepository;
     this.loanDisbursementRepository = loanDisbursementRepository;
+    this.emailService = emailService;
   }
 
   @Transactional
@@ -256,10 +259,28 @@ public class LoanService {
     loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
-    
+
     // Populate review details
     populateLoanDetails(savedLoan);
-    
+
+    // Send email if rejected
+    if (newLoanStatus == LoanStatus.REJECTED) {
+      try {
+        User customerUser =
+            userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+        if (customerUser != null) {
+          emailService.sendLoanRejectedEmail(
+              customerUser.getEmail(),
+              customerUser.getUsername(),
+              savedLoan.getId(),
+              request.getNotes());
+        }
+      } catch (Exception e) {
+        // Log error (or use logger if available in class)
+        System.err.println("Failed to send rejection email: " + e.getMessage());
+      }
+    }
+
     return LoanResponse.fromEntity(savedLoan);
   }
 
@@ -336,10 +357,33 @@ public class LoanService {
     loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
-    
+
     // Populate previous stages details (Review & Approval)
     populateLoanDetails(savedLoan);
-    
+
+    // Send email
+    try {
+      User customerUser =
+          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+      if (customerUser != null) {
+        if (newLoanStatus == LoanStatus.APPROVED) {
+          emailService.sendLoanApprovedEmail(
+              customerUser.getEmail(),
+              customerUser.getUsername(),
+              savedLoan.getId(),
+              savedLoan.getAmount());
+        } else if (newLoanStatus == LoanStatus.REJECTED) {
+          emailService.sendLoanRejectedEmail(
+              customerUser.getEmail(),
+              customerUser.getUsername(),
+              savedLoan.getId(),
+              request.getNotes());
+        }
+      }
+    } catch (Exception e) {
+      System.err.println("Failed to send approval/rejection email: " + e.getMessage());
+    }
+
     return LoanResponse.fromEntity(savedLoan);
   }
 
@@ -425,7 +469,23 @@ public class LoanService {
     
     // Manually set disbursement notes from request since we don't persist it
     savedLoan.setDisbursementNotes(request.getNotes());
-    
+
+    // Send email
+    try {
+      User customerUser =
+          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+      if (customerUser != null) {
+        emailService.sendLoanDisbursedEmail(
+            customerUser.getEmail(),
+            customerUser.getUsername(),
+            savedLoan.getId(),
+            savedLoan.getAmount(),
+            request.getBankAccount());
+      }
+    } catch (Exception e) {
+      System.err.println("Failed to send disbursement email: " + e.getMessage());
+    }
+
     return LoanResponse.fromEntity(savedLoan);
   }
 

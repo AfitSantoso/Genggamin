@@ -22,14 +22,17 @@ public class UserService {
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
+  private final EmailService emailService;
 
   public UserService(
       UserRepository userRepository,
       RoleRepository roleRepository,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      EmailService emailService) {
     this.userRepository = userRepository;
     this.roleRepository = roleRepository;
     this.passwordEncoder = passwordEncoder;
+    this.emailService = emailService;
   }
 
   /**
@@ -181,7 +184,18 @@ public class UserService {
       user.getRoles().add(defaultRole);
     }
 
-    return userRepository.saveAndFlush(user);
+    User savedUser = userRepository.saveAndFlush(user);
+
+    // Kirim email konfirmasi jika role adalah CUSTOMER
+    boolean isCustomer =
+        savedUser.getRoles().stream().anyMatch(r -> "CUSTOMER".equals(r.getName()));
+
+    if (isCustomer) {
+      emailService.sendRegistrationConfirmationEmail(
+          savedUser.getEmail(), savedUser.getUsername());
+    }
+
+    return savedUser;
   }
 
   /**
