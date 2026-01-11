@@ -49,6 +49,17 @@ public class Customer {
   @Column(name = "monthly_income", precision = 18, scale = 2)
   private BigDecimal monthlyIncome;
 
+  @Column(name = "ktp_image_path")
+  private String ktpImagePath;
+
+  @Column(name = "selfie_image_path")
+  private String selfieImagePath;
+
+  @Column(name = "payslip_image_path")
+  private String payslipImagePath;
+
+
+
   @Column(name = "occupation", length = 100)
   private String occupation;
 

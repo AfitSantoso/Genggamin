@@ -26,6 +26,9 @@ public class CustomerResponse {
   private String occupation;
   private String customerPhone;
   private String currentAddress;
+  private String ktpImagePath;
+  private String selfieImagePath;
+  private String payslipImagePath;
   private String motherMaidenName;
   private List<EmergencyContactResponse> emergencyContacts;
   private LocalDateTime createdAt;

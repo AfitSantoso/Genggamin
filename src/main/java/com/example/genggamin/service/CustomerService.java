@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -21,12 +22,36 @@ public class CustomerService {
   private final CustomerRepository customerRepository;
   private final EmergencyContactRepository emergencyContactRepository;
   private final UserRepository userRepository;
+  private final FileStorageService fileStorageService;
 
   @Transactional
-  public CustomerResponse createOrUpdateCustomer(Long userId, CustomerRequest request) {
+  public CustomerResponse createOrUpdateCustomer(
+      Long userId, CustomerRequest request, MultipartFile fileKtp, MultipartFile fileSelfie, MultipartFile filePayslip) {
     // Validasi user exists
     User user =
         userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+    // Check files requirements
+    // If it is a new customer or updating files, they must be present if we enforce "wajib ada"
+    // However, for update, we might allow skipping if they already have one.
+    // Based on user prompt: "sifatnya juga harus wajib ada" (must be mandatory).
+    
+    // Cari customer
+    Customer existingCustomerOrNew = customerRepository.findByUserId(userId).orElse(null);
+    boolean isNew = existingCustomerOrNew == null;
+
+    if (isNew) {
+       if (fileKtp == null || fileKtp.isEmpty() || fileSelfie == null || fileSelfie.isEmpty()) {
+          throw new RuntimeException("KTP and Selfie photos are mandatory for new profile profile.");
+       }
+       // Payslip might be mandatory too, usually for loan application, but let's make it optional for profile creation if not strictly enforced yet.
+       // User said "ingin menambahkan juga ... sifatnya juga harus wajib ada" in previous request for KTP/Selfie.
+       // For Payslip "ingin payslip yang berupa gambar juga". Assumed optional unless specified.
+       // But wait, usually KYC requires proof of income. Let's make it optional for now to avoid blocking if they don't have it handy, or consistent with KTP/Selfie if requested.
+       // Re-reading: "sifatnya juga harus wajib ada" was for KTP and Selfie in previous turn.
+       // Current turn: "ingin payslip yang berupa gambar juga ... tetapi penamaannya adalah fullname_nik_PAYSLIP".
+       // I'll keep it optional in validation but saving it if present.
+    }
 
     // Cek apakah NIK sudah digunakan oleh customer lain
     customerRepository
@@ -39,15 +64,41 @@ public class CustomerService {
             });
 
     // Cari atau buat customer baru
-    Customer customer = customerRepository.findByUserId(userId).orElse(new Customer());
+    Customer customer = isNew ? new Customer() : existingCustomerOrNew;
 
     customer.setUserId(userId);
+    // ... existing fields ...
     customer.setNik(request.getNik());
     customer.setDateOfBirth(request.getDateOfBirth());
     customer.setPlaceOfBirth(request.getPlaceOfBirth());
     customer.setAddress(request.getAddress());
     customer.setCurrentAddress(request.getCurrentAddress());
     customer.setPhone(request.getPhone());
+    
+    // Handle File Uploads
+    String sanitizedFullName = user.getFullName().replaceAll("\\s+", "_"); // Replace spaces
+    String fileBaseName = sanitizedFullName + "-" + request.getNik();
+
+    if (fileKtp != null && !fileKtp.isEmpty()) {
+        String ktpPath = fileStorageService.storeFile(fileKtp, fileBaseName + "_KTP");
+        customer.setKtpImagePath(ktpPath);
+    }
+    
+    if (fileSelfie != null && !fileSelfie.isEmpty()) {
+        String selfiePath = fileStorageService.storeFile(fileSelfie, fileBaseName + "_SELFIE");
+        customer.setSelfieImagePath(selfiePath);
+    }
+
+    if (filePayslip != null && !filePayslip.isEmpty()) {
+        String payslipPath = fileStorageService.storeFile(filePayslip, fileBaseName + "_PAYSLIP");
+        customer.setPayslipImagePath(payslipPath);
+    }
+    
+    // Ensure paths are set if they were null (though strict validation above handles new)
+    if (isNew && (customer.getKtpImagePath() == null || customer.getSelfieImagePath() == null)) {
+         throw new RuntimeException("Failed to upload mandatory documents.");
+    }
+
     customer.setMonthlyIncome(request.getMonthlyIncome());
     customer.setOccupation(request.getOccupation());
     customer.setMotherMaidenName(request.getMotherMaidenName());
@@ -105,6 +156,9 @@ public class CustomerService {
     response.setCustomerPhone(customer.getPhone());
     response.setCurrentAddress(customer.getCurrentAddress());
     response.setMotherMaidenName(customer.getMotherMaidenName());
+    response.setKtpImagePath(customer.getKtpImagePath());
+    response.setSelfieImagePath(customer.getSelfieImagePath());
+    response.setPayslipImagePath(customer.getPayslipImagePath());
     response.setCreatedAt(customer.getCreatedAt());
 
     // Get emergency contacts

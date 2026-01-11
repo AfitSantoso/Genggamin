@@ -21,6 +21,7 @@ spring:
     type: redis
     redis:
       time-to-live: 600000 # 10 minutes in milliseconds
+
   # Spring Mail Configuration
   mail:
     host: smtp.gmail.com
@@ -38,6 +39,9 @@ spring:
           timeout: 5000
           writetimeout: 5000
     test-connection: false # Set false agar tidak error saat startup jika belum konfigurasi email
+
+file:
+  upload-dir: ./uploads/kyc
 
 server:
   port: 8080
