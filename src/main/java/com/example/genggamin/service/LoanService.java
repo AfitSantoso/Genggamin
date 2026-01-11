@@ -164,6 +164,18 @@ public class LoanService {
                   .findById(approval.getApprovedBy())
                   .ifPresent(user -> loan.setApprovedBy(user.getUsername()));
             });
+
+    // Populate disbursement data
+    loanDisbursementRepository
+        .findByLoanId(loan.getId())
+        .ifPresent(
+            disbursement -> {
+              loan.setDisbursedAt(disbursement.getDisbursementDate());
+              // Get disburser username
+              userRepository
+                  .findById(disbursement.getDisbursedBy())
+                  .ifPresent(user -> loan.setDisbursedBy(user.getUsername()));
+            });
   }
 
   @Transactional(readOnly = true)
@@ -245,27 +257,10 @@ public class LoanService {
 
     Loan savedLoan = loanRepository.save(loan);
     
-    // Get review data to include in response
-    LoanReview savedReview = loanReviewRepository
-        .findByLoanId(loanId)
-        .orElse(null);
+    // Populate review details
+    populateLoanDetails(savedLoan);
     
-    LoanResponse response = LoanResponse.fromEntity(savedLoan);
-    
-    // Add review information if exists
-    if (savedReview != null) {
-      response.setReviewNotes(savedReview.getReviewNotes());
-      response.setReviewedAt(savedReview.getReviewedAt());
-      
-      // Convert user ID to username
-      User reviewer = userRepository.findById(savedReview.getReviewedBy())
-          .orElse(null);
-      if (reviewer != null) {
-        response.setReviewedBy(reviewer.getUsername());
-      }
-    }
-    
-    return response;
+    return LoanResponse.fromEntity(savedLoan);
   }
 
   @Transactional(readOnly = true)
@@ -342,27 +337,10 @@ public class LoanService {
 
     Loan savedLoan = loanRepository.save(loan);
     
-    // Get approval data to include in response
-    LoanApproval savedApproval = loanApprovalRepository
-        .findByLoanId(loanId)
-        .orElse(null);
+    // Populate previous stages details (Review & Approval)
+    populateLoanDetails(savedLoan);
     
-    LoanResponse response = LoanResponse.fromEntity(savedLoan);
-    
-    // Add approval information if exists
-    if (savedApproval != null) {
-      response.setApprovalNotes(savedApproval.getApprovalNotes());
-      response.setApprovedAt(savedApproval.getApprovedAt());
-      
-      // Convert user ID to username
-      User approver = userRepository.findById(savedApproval.getApprovedBy())
-          .orElse(null);
-      if (approver != null) {
-        response.setApprovedBy(approver.getUsername());
-      }
-    }
-    
-    return response;
+    return LoanResponse.fromEntity(savedLoan);
   }
 
   @Transactional(readOnly = true)
@@ -442,26 +420,13 @@ public class LoanService {
 
     Loan savedLoan = loanRepository.save(loan);
     
-    // Get disbursement data to include in response
-    LoanDisbursement savedDisbursement = loanDisbursementRepository
-        .findByLoanId(loanId)
-        .orElse(null);
+    // Populate previous stages details (Review, Approval, Disbursement)
+    populateLoanDetails(savedLoan);
     
-    LoanResponse response = LoanResponse.fromEntity(savedLoan);
+    // Manually set disbursement notes from request since we don't persist it
+    savedLoan.setDisbursementNotes(request.getNotes());
     
-    // Add disbursement information if exists
-    if (savedDisbursement != null) {
-      response.setDisbursedAt(savedDisbursement.getDisbursementDate());
-      
-      // Convert user ID to username
-      User disburser = userRepository.findById(savedDisbursement.getDisbursedBy())
-          .orElse(null);
-      if (disburser != null) {
-        response.setDisbursedBy(disburser.getUsername());
-      }
-    }
-    
-    return response;
+    return LoanResponse.fromEntity(savedLoan);
   }
 
   @Transactional(readOnly = true)
@@ -503,6 +468,16 @@ public class LoanService {
               response.setDisbursementDate(disbursement.getDisbursementDate());
               response.setBankAccount(disbursement.getBankAccount());
               response.setDisbursementStatus(disbursement.getStatus());
+              
+              // Populate approval details
+              loanApprovalRepository.findByLoanId(loan.getId())
+                  .ifPresent(approval -> {
+                      response.setApprovalId(approval.getId());
+                      response.setApprovedBy(approval.getApprovedBy());
+                      response.setApprovalStatus(approval.getApprovalStatus());
+                      response.setApprovalNotes(approval.getApprovalNotes());
+                      response.setApprovedAt(approval.getApprovedAt());
+                  });
               
               return response;
             })

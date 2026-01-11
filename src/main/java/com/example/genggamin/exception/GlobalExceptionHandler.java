@@ -16,6 +16,18 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
   }
 
+  @ExceptionHandler(ResourceNotFoundException.class)
+  public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException e) {
+    ApiResponse<Object> response = new ApiResponse<>(false, e.getMessage(), null);
+    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ApiResponse<Object>> handleValidationException(ValidationException e) {
+    ApiResponse<Object> response = new ApiResponse<>(false, e.getMessage(), null);
+    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+  }
+
   @ExceptionHandler(RuntimeException.class)
   public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException e) {
     ApiResponse<Object> response = new ApiResponse<>(false, e.getMessage(), null);

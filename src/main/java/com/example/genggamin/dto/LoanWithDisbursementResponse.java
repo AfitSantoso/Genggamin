@@ -26,6 +26,13 @@ public class LoanWithDisbursementResponse {
     private String bankAccount;
     private String disbursementStatus;
 
+    // Approval fields
+    private Long approvalId;
+    private Long approvedBy;
+    private String approvalStatus;
+    private String approvalNotes;
+    private LocalDateTime approvedAt;
+
     // Constructors
     public LoanWithDisbursementResponse() {
     }
@@ -165,5 +172,45 @@ public class LoanWithDisbursementResponse {
 
     public void setDisbursementStatus(String disbursementStatus) {
         this.disbursementStatus = disbursementStatus;
+    }
+
+    public Long getApprovalId() {
+        return approvalId;
+    }
+
+    public void setApprovalId(Long approvalId) {
+        this.approvalId = approvalId;
+    }
+
+    public Long getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(Long approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    public String getApprovalStatus() {
+        return approvalStatus;
+    }
+
+    public void setApprovalStatus(String approvalStatus) {
+        this.approvalStatus = approvalStatus;
+    }
+
+    public String getApprovalNotes() {
+        return approvalNotes;
+    }
+
+    public void setApprovalNotes(String approvalNotes) {
+        this.approvalNotes = approvalNotes;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
     }
 }

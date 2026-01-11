@@ -4,10 +4,12 @@ import com.example.genggamin.dto.*;
 import com.example.genggamin.entity.Customer;
 import com.example.genggamin.entity.EmergencyContact;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.enums.DocumentType;
+import com.example.genggamin.exception.ResourceNotFoundException;
+import com.example.genggamin.exception.ValidationException;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.EmergencyContactRepository;
 import com.example.genggamin.repository.UserRepository;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -27,92 +29,99 @@ public class CustomerService {
   @Transactional
   public CustomerResponse createOrUpdateCustomer(
       Long userId, CustomerRequest request, MultipartFile fileKtp, MultipartFile fileSelfie, MultipartFile filePayslip) {
-    // Validasi user exists
-    User user =
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-
-    // Check files requirements
-    // If it is a new customer or updating files, they must be present if we enforce "wajib ada"
-    // However, for update, we might allow skipping if they already have one.
-    // Based on user prompt: "sifatnya juga harus wajib ada" (must be mandatory).
     
-    // Cari customer
-    Customer existingCustomerOrNew = customerRepository.findByUserId(userId).orElse(null);
-    boolean isNew = existingCustomerOrNew == null;
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+    Customer existingCustomer = customerRepository.findByUserId(userId).orElse(null);
+    boolean isNew = existingCustomer == null;
 
     if (isNew) {
        if (fileKtp == null || fileKtp.isEmpty() || fileSelfie == null || fileSelfie.isEmpty()) {
-          throw new RuntimeException("KTP and Selfie photos are mandatory for new profile profile.");
+          throw new ValidationException("KTP and Selfie photos are mandatory for new customer profile.");
        }
-       // Payslip might be mandatory too, usually for loan application, but let's make it optional for profile creation if not strictly enforced yet.
-       // User said "ingin menambahkan juga ... sifatnya juga harus wajib ada" in previous request for KTP/Selfie.
-       // For Payslip "ingin payslip yang berupa gambar juga". Assumed optional unless specified.
-       // But wait, usually KYC requires proof of income. Let's make it optional for now to avoid blocking if they don't have it handy, or consistent with KTP/Selfie if requested.
-       // Re-reading: "sifatnya juga harus wajib ada" was for KTP and Selfie in previous turn.
-       // Current turn: "ingin payslip yang berupa gambar juga ... tetapi penamaannya adalah fullname_nik_PAYSLIP".
-       // I'll keep it optional in validation but saving it if present.
     }
 
-    // Cek apakah NIK sudah digunakan oleh customer lain
-    customerRepository
-        .findByNik(request.getNik())
-        .ifPresent(
-            existingCustomer -> {
-              if (!existingCustomer.getUserId().equals(userId)) {
-                throw new RuntimeException("NIK already registered by another customer");
-              }
-            });
+    validateNikUniqueness(request.getNik(), userId);
 
-    // Cari atau buat customer baru
-    Customer customer = isNew ? new Customer() : existingCustomerOrNew;
+    Customer customer = isNew ? new Customer() : existingCustomer;
+    updateCustomerEntity(customer, user, request); // Helper method to populate fields
+    
+    // Handle File Uploads
+    handleFileUploads(customer, user, request.getNik(), fileKtp, fileSelfie, filePayslip);
 
-    customer.setUserId(userId);
-    // ... existing fields ...
+    // Validate if any mandatory image path is missing (double check)
+    if (isNew && (customer.getKtpImagePath() == null || customer.getSelfieImagePath() == null)) {
+         throw new ValidationException("Failed to upload mandatory documents.");
+    }
+
+    customer = customerRepository.save(customer);
+
+    updateEmergencyContact(customer, request.getEmergencyContact());
+
+    return mapToCustomerResponse(customer, user);
+  }
+
+  public CustomerResponse getCustomerByUserId(Long userId) {
+    Customer customer = customerRepository.findByUserId(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found for user id: " + userId));
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+    return mapToCustomerResponse(customer, user);
+  }
+
+  public boolean hasCustomerData(Long userId) {
+    return customerRepository.existsByUserId(userId);
+  }
+
+  private void validateNikUniqueness(String nik, Long userId) {
+    customerRepository.findByNik(nik).ifPresent(existingCustomer -> {
+      if (!existingCustomer.getUserId().equals(userId)) {
+        throw new ValidationException("NIK " + nik + " is already registered by another customer");
+      }
+    });
+  }
+
+  private void updateCustomerEntity(Customer customer, User user, CustomerRequest request) {
+    customer.setUserId(user.getId());
     customer.setNik(request.getNik());
     customer.setDateOfBirth(request.getDateOfBirth());
     customer.setPlaceOfBirth(request.getPlaceOfBirth());
     customer.setAddress(request.getAddress());
     customer.setCurrentAddress(request.getCurrentAddress());
     customer.setPhone(request.getPhone());
-    
-    // Handle File Uploads
-    String sanitizedFullName = user.getFullName().replaceAll("\\s+", "_"); // Replace spaces
-    String fileBaseName = sanitizedFullName + "-" + request.getNik();
+    customer.setMonthlyIncome(request.getMonthlyIncome());
+    customer.setOccupation(request.getOccupation());
+    customer.setMotherMaidenName(request.getMotherMaidenName());
+  }
+
+  private void handleFileUploads(Customer customer, User user, String nik, MultipartFile fileKtp, MultipartFile fileSelfie, MultipartFile filePayslip) {
+    String sanitizedFullName = user.getFullName().replaceAll("\\s+", "_");
+    String fileBaseName = sanitizedFullName + "-" + nik;
 
     if (fileKtp != null && !fileKtp.isEmpty()) {
-        String ktpPath = fileStorageService.storeFile(fileKtp, fileBaseName + "_KTP");
+        String ktpPath = fileStorageService.storeFile(fileKtp, fileBaseName + "_" + DocumentType.KTP.name());
         customer.setKtpImagePath(ktpPath);
     }
     
     if (fileSelfie != null && !fileSelfie.isEmpty()) {
-        String selfiePath = fileStorageService.storeFile(fileSelfie, fileBaseName + "_SELFIE");
+        String selfiePath = fileStorageService.storeFile(fileSelfie, fileBaseName + "_" + DocumentType.SELFIE.name());
         customer.setSelfieImagePath(selfiePath);
     }
 
     if (filePayslip != null && !filePayslip.isEmpty()) {
-        String payslipPath = fileStorageService.storeFile(filePayslip, fileBaseName + "_PAYSLIP");
+        String payslipPath = fileStorageService.storeFile(filePayslip, fileBaseName + "_" + DocumentType.PAYSLIP.name());
         customer.setPayslipImagePath(payslipPath);
     }
-    
-    // Ensure paths are set if they were null (though strict validation above handles new)
-    if (isNew && (customer.getKtpImagePath() == null || customer.getSelfieImagePath() == null)) {
-         throw new RuntimeException("Failed to upload mandatory documents.");
-    }
+  }
 
-    customer.setMonthlyIncome(request.getMonthlyIncome());
-    customer.setOccupation(request.getOccupation());
-    customer.setMotherMaidenName(request.getMotherMaidenName());
-
-    customer = customerRepository.save(customer);
-
-    // Update emergency contact (singular)
-    if (request.getEmergencyContact() != null) {
-      // Hapus kontak darurat yang lama
+  private void updateEmergencyContact(Customer customer, EmergencyContactRequest ecRequest) {
+    if (ecRequest != null) {
       emergencyContactRepository.deleteByCustomerId(customer.getId());
       emergencyContactRepository.flush();
 
-      // Tambahkan kontak darurat yang baru
-      EmergencyContactRequest ecRequest = request.getEmergencyContact();
       EmergencyContact ec = new EmergencyContact();
       ec.setCustomerId(customer.getId());
       ec.setContactName(ecRequest.getName());
@@ -120,24 +129,6 @@ public class CustomerService {
       ec.setRelationship(ecRequest.getRelationship());
       emergencyContactRepository.save(ec);
     }
-
-    return mapToCustomerResponse(customer, user);
-  }
-
-  public CustomerResponse getCustomerByUserId(Long userId) {
-    Customer customer =
-        customerRepository
-            .findByUserId(userId)
-            .orElseThrow(() -> new RuntimeException("Customer data not found"));
-
-    User user =
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-
-    return mapToCustomerResponse(customer, user);
-  }
-
-  public boolean hasCustomerData(Long userId) {
-    return customerRepository.existsByUserId(userId);
   }
 
   private CustomerResponse mapToCustomerResponse(Customer customer, User user) {
@@ -161,13 +152,9 @@ public class CustomerService {
     response.setPayslipImagePath(customer.getPayslipImagePath());
     response.setCreatedAt(customer.getCreatedAt());
 
-    // Get emergency contacts
-    List<EmergencyContact> emergencyContacts =
-        emergencyContactRepository.findByCustomerId(customer.getId());
-    List<EmergencyContactResponse> ecResponses =
-        emergencyContacts.stream()
-            .map(
-                ec -> {
+    List<EmergencyContact> emergencyContacts = emergencyContactRepository.findByCustomerId(customer.getId());
+    List<EmergencyContactResponse> ecResponses = emergencyContacts.stream()
+            .map(ec -> {
                   EmergencyContactResponse ecr = new EmergencyContactResponse();
                   ecr.setId(ec.getId());
                   ecr.setContactName(ec.getContactName());
@@ -179,7 +166,6 @@ public class CustomerService {
             .collect(Collectors.toList());
 
     response.setEmergencyContacts(ecResponses);
-
     return response;
   }
 }
