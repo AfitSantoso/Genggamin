@@ -10,12 +10,14 @@ import com.example.genggamin.exception.ValidationException;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.EmergencyContactRepository;
 import com.example.genggamin.repository.UserRepository;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -68,6 +70,16 @@ public class CustomerService {
 
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+    return mapToCustomerResponse(customer, user);
+  }
+
+  public CustomerResponse getCustomerById(Long customerId) {
+    Customer customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+
+    User user = userRepository.findById(customer.getUserId())
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + customer.getUserId()));
 
     return mapToCustomerResponse(customer, user);
   }
@@ -131,6 +143,25 @@ public class CustomerService {
     }
   }
 
+  private String generateFileUrl(String filePath) {
+    if (filePath == null || filePath.isEmpty()) {
+      return null;
+    }
+    try {
+      // Extract filename from absolute path
+      String filename = Paths.get(filePath).getFileName().toString();
+      
+      // Build URL: {base_url}/uploads/kyc/{filename}
+      return ServletUriComponentsBuilder.fromCurrentContextPath()
+          .path("/uploads/kyc/")
+          .path(filename)
+          .toUriString();
+    } catch (Exception e) {
+       // Fallback if context is not available or path is invalid
+       return filePath; 
+    }
+  }
+
   private CustomerResponse mapToCustomerResponse(Customer customer, User user) {
     CustomerResponse response = new CustomerResponse();
     response.setId(customer.getId());
@@ -147,9 +178,9 @@ public class CustomerService {
     response.setCustomerPhone(customer.getPhone());
     response.setCurrentAddress(customer.getCurrentAddress());
     response.setMotherMaidenName(customer.getMotherMaidenName());
-    response.setKtpImagePath(customer.getKtpImagePath());
-    response.setSelfieImagePath(customer.getSelfieImagePath());
-    response.setPayslipImagePath(customer.getPayslipImagePath());
+    response.setKtpImagePath(generateFileUrl(customer.getKtpImagePath()));
+    response.setSelfieImagePath(generateFileUrl(customer.getSelfieImagePath()));
+    response.setPayslipImagePath(generateFileUrl(customer.getPayslipImagePath()));
     response.setCreatedAt(customer.getCreatedAt());
 
     List<EmergencyContact> emergencyContacts = emergencyContactRepository.findByCustomerId(customer.getId());

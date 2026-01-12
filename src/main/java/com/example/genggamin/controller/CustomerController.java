@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -50,6 +51,17 @@ public class CustomerController {
     Long userId = getAuthenticatedUserId();
 
     CustomerResponse customerResponse = customerService.getCustomerByUserId(userId);
+
+    ApiResponse<CustomerResponse> response =
+        new ApiResponse<>(true, "Customer profile retrieved successfully", customerResponse);
+
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/{customerId}")
+  @PreAuthorize("hasAnyRole('MARKETING', 'BRANCH_MANAGER', 'BACK_OFFICE', 'ADMIN')")
+  public ResponseEntity<ApiResponse<CustomerResponse>> getCustomerById(@PathVariable Long customerId) {
+    CustomerResponse customerResponse = customerService.getCustomerById(customerId);
 
     ApiResponse<CustomerResponse> response =
         new ApiResponse<>(true, "Customer profile retrieved successfully", customerResponse);
