@@ -54,6 +54,13 @@ public class Loan {
   @Builder.Default
   private LocalDateTime submittedAt = LocalDateTime.now();
 
+  @Column(name = "created_at")
+  @Builder.Default
+  private LocalDateTime createdAt = LocalDateTime.now();
+
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
+
   @Transient private LocalDateTime reviewedAt;
 
   @Transient private LocalDateTime approvedAt;

@@ -4,6 +4,9 @@ import com.example.genggamin.dto.ApiResponse;
 import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
+import com.example.genggamin.dto.LoanWithApprovalResponse;
+import com.example.genggamin.dto.LoanWithDisbursementResponse;
+import com.example.genggamin.dto.LoanWithReviewResponse;
 import com.example.genggamin.service.LoanService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -108,6 +111,28 @@ public class LoanController {
     }
   }
 
+  /** MARKETING/ADMIN: Get all reviewed loans with review details */
+  @GetMapping("/reviewed")
+  @PreAuthorize("hasAnyRole('MARKETING', 'ADMIN')")
+  public ResponseEntity<ApiResponse<List<LoanWithReviewResponse>>> getReviewedLoans() {
+    try {
+      List<LoanWithReviewResponse> loans = loanService.getReviewedLoans();
+      return ResponseEntity.ok(
+          ApiResponse.<List<LoanWithReviewResponse>>builder()
+              .success(true)
+              .message("Reviewed loans retrieved successfully")
+              .data(loans)
+              .build());
+    } catch (Exception e) {
+      return ResponseEntity.badRequest()
+          .body(
+              ApiResponse.<List<LoanWithReviewResponse>>builder()
+                  .success(false)
+                  .message(e.getMessage())
+                  .build());
+    }
+  }
+
   /** BRANCH_MANAGER: Get loans for approval */
   @GetMapping("/approve")
   @PreAuthorize("hasAnyRole('BRANCH_MANAGER', 'ADMIN')")
@@ -152,6 +177,28 @@ public class LoanController {
     }
   }
 
+  /** BRANCH_MANAGER/ADMIN: Get all approved/rejected loans with approval details */
+  @GetMapping("/approved")
+  @PreAuthorize("hasAnyRole('BRANCH_MANAGER', 'ADMIN')")
+  public ResponseEntity<ApiResponse<List<LoanWithApprovalResponse>>> getApprovedLoans() {
+    try {
+      List<LoanWithApprovalResponse> loans = loanService.getApprovedLoansWithDetails();
+      return ResponseEntity.ok(
+          ApiResponse.<List<LoanWithApprovalResponse>>builder()
+              .success(true)
+              .message("Approved loans retrieved successfully")
+              .data(loans)
+              .build());
+    } catch (Exception e) {
+      return ResponseEntity.badRequest()
+          .body(
+              ApiResponse.<List<LoanWithApprovalResponse>>builder()
+                  .success(false)
+                  .message(e.getMessage())
+                  .build());
+    }
+  }
+
   /** BACK_OFFICE: Get loans for disbursement */
   @GetMapping("/disburse")
   @PreAuthorize("hasAnyRole('BACK_OFFICE', 'ADMIN')")
@@ -168,6 +215,28 @@ public class LoanController {
       return ResponseEntity.badRequest()
           .body(
               ApiResponse.<List<LoanResponse>>builder()
+                  .success(false)
+                  .message(e.getMessage())
+                  .build());
+    }
+  }
+
+  /** BACK_OFFICE/ADMIN: Get all disbursed loans with disbursement details */
+  @GetMapping("/disbursed")
+  @PreAuthorize("hasAnyRole('BACK_OFFICE', 'ADMIN')")
+  public ResponseEntity<ApiResponse<List<LoanWithDisbursementResponse>>> getDisbursedLoans() {
+    try {
+      List<LoanWithDisbursementResponse> loans = loanService.getDisbursedLoansWithDetails();
+      return ResponseEntity.ok(
+          ApiResponse.<List<LoanWithDisbursementResponse>>builder()
+              .success(true)
+              .message("Disbursed loans retrieved successfully")
+              .data(loans)
+              .build());
+    } catch (Exception e) {
+      return ResponseEntity.badRequest()
+          .body(
+              ApiResponse.<List<LoanWithDisbursementResponse>>builder()
                   .success(false)
                   .message(e.getMessage())
                   .build());

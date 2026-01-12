@@ -26,8 +26,8 @@ public class User {
   @Column(nullable = false, unique = true)
   private String email;
 
-  @Column(nullable = true)
-  private String phone;
+  @Column(name = "full_name", length = 150)
+  private String fullName;
 
   @Column(name = "password_hash", nullable = false)
   private String password;

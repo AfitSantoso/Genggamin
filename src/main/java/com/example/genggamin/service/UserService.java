@@ -22,14 +22,17 @@ public class UserService {
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
+  private final EmailService emailService;
 
   public UserService(
       UserRepository userRepository,
       RoleRepository roleRepository,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      EmailService emailService) {
     this.userRepository = userRepository;
     this.roleRepository = roleRepository;
     this.passwordEncoder = passwordEncoder;
+    this.emailService = emailService;
   }
 
   /**
@@ -65,7 +68,7 @@ public class UserService {
     dto.setId(user.getId());
     dto.setUsername(user.getUsername());
     dto.setEmail(user.getEmail());
-    dto.setPhone(user.getPhone());
+    dto.setFullName(user.getFullName());
     dto.setIsActive(user.getIsActive());
     // Convert roles Set<Role> to List<String> role names
     dto.setRoles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()));
@@ -150,9 +153,9 @@ public class UserService {
     User user = new User();
     user.setUsername(req.getUsername());
     user.setEmail(req.getEmail());
+    user.setFullName(req.getFullName());
     user.setPassword(passwordEncoder.encode(req.getPassword()));
     user.setIsActive(true);
-    user.setPhone(req.getPhone());
 
     // Handle roles assignment
     if (req.getRoles() != null && !req.getRoles().isEmpty()) {
@@ -181,7 +184,18 @@ public class UserService {
       user.getRoles().add(defaultRole);
     }
 
-    return userRepository.saveAndFlush(user);
+    User savedUser = userRepository.saveAndFlush(user);
+
+    // Kirim email konfirmasi jika role adalah CUSTOMER
+    boolean isCustomer =
+        savedUser.getRoles().stream().anyMatch(r -> "CUSTOMER".equals(r.getName()));
+
+    if (isCustomer) {
+      emailService.sendRegistrationConfirmationEmail(
+          savedUser.getEmail(), savedUser.getUsername());
+    }
+
+    return savedUser;
   }
 
   /**
@@ -207,9 +221,9 @@ public class UserService {
     User user = new User();
     user.setUsername(req.getUsername());
     user.setEmail(req.getEmail());
+    user.setFullName(req.getFullName());
     user.setPassword(passwordEncoder.encode(req.getPassword()));
     user.setIsActive(req.getIsActive() != null ? req.getIsActive() : true);
-    user.setPhone(req.getPhone());
 
     // Handle roles assignment
     if (req.getRoles() != null && !req.getRoles().isEmpty()) {

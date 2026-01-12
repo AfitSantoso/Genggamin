@@ -16,7 +16,7 @@ public class UserResponse {
   private Long id;
   private String username;
   private String email;
-  private String phone;
+  private String fullName;
   private Boolean isActive;
   private List<String> roles; // Changed from Set<RoleResponse> to List<String> for better caching
 }

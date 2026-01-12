@@ -38,3 +38,11 @@ application-copy.yml
 
 ### Environment Variables ###
 .env
+
+### Documentation & DB ###
+docs/
+database/
+postman/
+uploads/
+*.md
+*.sql

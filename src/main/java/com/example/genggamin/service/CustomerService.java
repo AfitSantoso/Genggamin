@@ -4,15 +4,18 @@ import com.example.genggamin.dto.*;
 import com.example.genggamin.entity.Customer;
 import com.example.genggamin.entity.EmergencyContact;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.enums.DocumentType;
+import com.example.genggamin.exception.ResourceNotFoundException;
+import com.example.genggamin.exception.ValidationException;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.EmergencyContactRepository;
 import com.example.genggamin.repository.UserRepository;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -21,68 +24,50 @@ public class CustomerService {
   private final CustomerRepository customerRepository;
   private final EmergencyContactRepository emergencyContactRepository;
   private final UserRepository userRepository;
+  private final FileStorageService fileStorageService;
 
   @Transactional
-  public CustomerResponse createOrUpdateCustomer(Long userId, CustomerRequest request) {
-    // Validasi user exists
-    User user =
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+  public CustomerResponse createOrUpdateCustomer(
+      Long userId, CustomerRequest request, MultipartFile fileKtp, MultipartFile fileSelfie, MultipartFile filePayslip) {
+    
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-    // Cek apakah NIK sudah digunakan oleh customer lain
-    customerRepository
-        .findByNik(request.getNik())
-        .ifPresent(
-            existingCustomer -> {
-              if (!existingCustomer.getUserId().equals(userId)) {
-                throw new RuntimeException("NIK already registered by another customer");
-              }
-            });
+    Customer existingCustomer = customerRepository.findByUserId(userId).orElse(null);
+    boolean isNew = existingCustomer == null;
 
-    // Cari atau buat customer baru
-    Customer customer = customerRepository.findByUserId(userId).orElse(new Customer());
+    if (isNew) {
+       if (fileKtp == null || fileKtp.isEmpty() || fileSelfie == null || fileSelfie.isEmpty()) {
+          throw new ValidationException("KTP and Selfie photos are mandatory for new customer profile.");
+       }
+    }
 
-    customer.setUserId(userId);
-    customer.setNik(request.getNik());
-    customer.setAddress(request.getAddress());
-    customer.setDateOfBirth(request.getDateOfBirth());
-    customer.setMonthlyIncome(request.getMonthlyIncome());
-    customer.setFullName(request.getFullName());
-    customer.setPhone(request.getPhone());
-    customer.setCurrentAddress(request.getCurrentAddress());
-    customer.setMotherMaidenName(request.getMotherMaidenName());
+    validateNikUniqueness(request.getNik(), userId);
+
+    Customer customer = isNew ? new Customer() : existingCustomer;
+    updateCustomerEntity(customer, user, request); // Helper method to populate fields
+    
+    // Handle File Uploads
+    handleFileUploads(customer, user, request.getNik(), fileKtp, fileSelfie, filePayslip);
+
+    // Validate if any mandatory image path is missing (double check)
+    if (isNew && (customer.getKtpImagePath() == null || customer.getSelfieImagePath() == null)) {
+         throw new ValidationException("Failed to upload mandatory documents.");
+    }
 
     customer = customerRepository.save(customer);
 
-    // Update emergency contacts
-    if (request.getEmergencyContacts() != null && !request.getEmergencyContacts().isEmpty()) {
-      // Hapus kontak darurat yang lama
-      emergencyContactRepository.deleteByCustomerId(customer.getId());
-      emergencyContactRepository.flush();
-
-      // Tambahkan kontak darurat yang baru
-      List<EmergencyContact> emergencyContacts = new ArrayList<>();
-      for (EmergencyContactRequest ecRequest : request.getEmergencyContacts()) {
-        EmergencyContact ec = new EmergencyContact();
-        ec.setCustomerId(customer.getId());
-        ec.setContactName(ecRequest.getContactName());
-        ec.setContactPhone(ecRequest.getContactPhone());
-        ec.setRelationship(ecRequest.getRelationship());
-        emergencyContacts.add(ec);
-      }
-      emergencyContactRepository.saveAll(emergencyContacts);
-    }
+    updateEmergencyContact(customer, request.getEmergencyContact());
 
     return mapToCustomerResponse(customer, user);
   }
 
   public CustomerResponse getCustomerByUserId(Long userId) {
-    Customer customer =
-        customerRepository
-            .findByUserId(userId)
-            .orElseThrow(() -> new RuntimeException("Customer data not found"));
+    Customer customer = customerRepository.findByUserId(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found for user id: " + userId));
 
-    User user =
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
     return mapToCustomerResponse(customer, user);
   }
@@ -91,29 +76,85 @@ public class CustomerService {
     return customerRepository.existsByUserId(userId);
   }
 
+  private void validateNikUniqueness(String nik, Long userId) {
+    customerRepository.findByNik(nik).ifPresent(existingCustomer -> {
+      if (!existingCustomer.getUserId().equals(userId)) {
+        throw new ValidationException("NIK " + nik + " is already registered by another customer");
+      }
+    });
+  }
+
+  private void updateCustomerEntity(Customer customer, User user, CustomerRequest request) {
+    customer.setUserId(user.getId());
+    customer.setNik(request.getNik());
+    customer.setDateOfBirth(request.getDateOfBirth());
+    customer.setPlaceOfBirth(request.getPlaceOfBirth());
+    customer.setAddress(request.getAddress());
+    customer.setCurrentAddress(request.getCurrentAddress());
+    customer.setPhone(request.getPhone());
+    customer.setMonthlyIncome(request.getMonthlyIncome());
+    customer.setOccupation(request.getOccupation());
+    customer.setMotherMaidenName(request.getMotherMaidenName());
+  }
+
+  private void handleFileUploads(Customer customer, User user, String nik, MultipartFile fileKtp, MultipartFile fileSelfie, MultipartFile filePayslip) {
+    String sanitizedFullName = user.getFullName().replaceAll("\\s+", "_");
+    String fileBaseName = sanitizedFullName + "-" + nik;
+
+    if (fileKtp != null && !fileKtp.isEmpty()) {
+        String ktpPath = fileStorageService.storeFile(fileKtp, fileBaseName + "_" + DocumentType.KTP.name());
+        customer.setKtpImagePath(ktpPath);
+    }
+    
+    if (fileSelfie != null && !fileSelfie.isEmpty()) {
+        String selfiePath = fileStorageService.storeFile(fileSelfie, fileBaseName + "_" + DocumentType.SELFIE.name());
+        customer.setSelfieImagePath(selfiePath);
+    }
+
+    if (filePayslip != null && !filePayslip.isEmpty()) {
+        String payslipPath = fileStorageService.storeFile(filePayslip, fileBaseName + "_" + DocumentType.PAYSLIP.name());
+        customer.setPayslipImagePath(payslipPath);
+    }
+  }
+
+  private void updateEmergencyContact(Customer customer, EmergencyContactRequest ecRequest) {
+    if (ecRequest != null) {
+      emergencyContactRepository.deleteByCustomerId(customer.getId());
+      emergencyContactRepository.flush();
+
+      EmergencyContact ec = new EmergencyContact();
+      ec.setCustomerId(customer.getId());
+      ec.setContactName(ecRequest.getName());
+      ec.setContactPhone(ecRequest.getPhone());
+      ec.setRelationship(ecRequest.getRelationship());
+      emergencyContactRepository.save(ec);
+    }
+  }
+
   private CustomerResponse mapToCustomerResponse(Customer customer, User user) {
     CustomerResponse response = new CustomerResponse();
     response.setId(customer.getId());
     response.setUserId(customer.getUserId());
     response.setUsername(user.getUsername());
     response.setEmail(user.getEmail());
+    response.setFullName(user.getFullName());
     response.setNik(customer.getNik());
     response.setAddress(customer.getAddress());
     response.setDateOfBirth(customer.getDateOfBirth());
+    response.setPlaceOfBirth(customer.getPlaceOfBirth());
     response.setMonthlyIncome(customer.getMonthlyIncome());
-    response.setCustomerFullName(customer.getFullName());
+    response.setOccupation(customer.getOccupation());
     response.setCustomerPhone(customer.getPhone());
     response.setCurrentAddress(customer.getCurrentAddress());
     response.setMotherMaidenName(customer.getMotherMaidenName());
+    response.setKtpImagePath(customer.getKtpImagePath());
+    response.setSelfieImagePath(customer.getSelfieImagePath());
+    response.setPayslipImagePath(customer.getPayslipImagePath());
     response.setCreatedAt(customer.getCreatedAt());
 
-    // Get emergency contacts
-    List<EmergencyContact> emergencyContacts =
-        emergencyContactRepository.findByCustomerId(customer.getId());
-    List<EmergencyContactResponse> ecResponses =
-        emergencyContacts.stream()
-            .map(
-                ec -> {
+    List<EmergencyContact> emergencyContacts = emergencyContactRepository.findByCustomerId(customer.getId());
+    List<EmergencyContactResponse> ecResponses = emergencyContacts.stream()
+            .map(ec -> {
                   EmergencyContactResponse ecr = new EmergencyContactResponse();
                   ecr.setId(ec.getId());
                   ecr.setContactName(ec.getContactName());
@@ -125,7 +166,6 @@ public class CustomerService {
             .collect(Collectors.toList());
 
     response.setEmergencyContacts(ecResponses);
-
     return response;
   }
 }

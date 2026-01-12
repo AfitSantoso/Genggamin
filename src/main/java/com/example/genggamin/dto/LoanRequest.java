@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanRequest {
+  private Long plafondId;
   private BigDecimal amount;
   private Long tenureMonths;
   private String purpose;
