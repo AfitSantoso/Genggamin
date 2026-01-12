@@ -14,6 +14,7 @@ import com.example.genggamin.entity.LoanDisbursement;
 import com.example.genggamin.entity.LoanReview;
 import com.example.genggamin.entity.Plafond;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.enums.NotificationType;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.LoanApprovalRepository;
 import com.example.genggamin.repository.LoanDisbursementRepository;
@@ -38,6 +39,7 @@ public class LoanService {
   private final LoanApprovalRepository loanApprovalRepository;
   private final LoanDisbursementRepository loanDisbursementRepository;
   private final EmailService emailService;
+  private final NotificationService notificationService;
 
   public LoanService(
       LoanRepository loanRepository,
@@ -47,7 +49,8 @@ public class LoanService {
       LoanReviewRepository loanReviewRepository,
       LoanApprovalRepository loanApprovalRepository,
       LoanDisbursementRepository loanDisbursementRepository,
-      EmailService emailService) {
+      EmailService emailService,
+      NotificationService notificationService) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
     this.customerRepository = customerRepository;
@@ -56,6 +59,7 @@ public class LoanService {
     this.loanApprovalRepository = loanApprovalRepository;
     this.loanDisbursementRepository = loanDisbursementRepository;
     this.emailService = emailService;
+    this.notificationService = notificationService;
   }
 
   @Transactional
@@ -134,6 +138,16 @@ public class LoanService {
             .build();
 
     Loan savedLoan = loanRepository.save(loan);
+
+    // Notify Customer
+    notificationService.sendNotification(user, NotificationType.LOAN_SUBMISSION, savedLoan);
+
+    // Notify Marketing Staff (Simulated broadcast)
+    List<User> marketingStaff = userRepository.findByRoles_Name("MARKETING");
+    for (User marketing : marketingStaff) {
+      notificationService.sendNotification(marketing, NotificationType.LOAN_NEW, savedLoan);
+    }
+
     return LoanResponse.fromEntity(savedLoan);
   }
 
@@ -263,11 +277,24 @@ public class LoanService {
     // Populate review details
     populateLoanDetails(savedLoan);
 
+    // Notifications
+    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+
+    if (newLoanStatus == LoanStatus.UNDER_REVIEW) {
+      // Notify Branch Manager
+      List<User> branchManagers = userRepository.findByRoles_Name("BRANCH_MANAGER");
+      for (User bm : branchManagers) {
+        notificationService.sendNotification(bm, NotificationType.READY_FOR_APPROVAL, savedLoan);
+      }
+    } else if (newLoanStatus == LoanStatus.REJECTED) {
+      if (customerUser != null) {
+        notificationService.sendNotification(customerUser, NotificationType.LOAN_REJECTED, savedLoan);
+      }
+    }
+
     // Send email if rejected
     if (newLoanStatus == LoanStatus.REJECTED) {
       try {
-        User customerUser =
-            userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
         if (customerUser != null) {
           emailService.sendLoanRejectedEmail(
               customerUser.getEmail(),
@@ -361,10 +388,25 @@ public class LoanService {
     // Populate previous stages details (Review & Approval)
     populateLoanDetails(savedLoan);
 
+    // Notifications
+    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+    if (newLoanStatus == LoanStatus.APPROVED) {
+        if (customerUser != null) {
+            notificationService.sendNotification(customerUser, NotificationType.LOAN_APPROVED, savedLoan);
+        }
+        // Notify Back Office
+        List<User> backOfficeStaff = userRepository.findByRoles_Name("BACK_OFFICE");
+        for (User bo : backOfficeStaff) {
+             notificationService.sendNotification(bo, NotificationType.READY_FOR_DISBURSEMENT, savedLoan);
+        }
+    } else if (newLoanStatus == LoanStatus.REJECTED) {
+         if (customerUser != null) {
+             notificationService.sendNotification(customerUser, NotificationType.LOAN_REJECTED, savedLoan);
+         }
+    }
+
     // Send email
     try {
-      User customerUser =
-          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
       if (customerUser != null) {
         if (newLoanStatus == LoanStatus.APPROVED) {
           emailService.sendLoanApprovedEmail(
@@ -470,10 +512,14 @@ public class LoanService {
     // Manually set disbursement notes from request since we don't persist it
     savedLoan.setDisbursementNotes(request.getNotes());
 
+    // Notifications
+    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+    if (customerUser != null) {
+        notificationService.sendNotification(customerUser, NotificationType.LOAN_DISBURSED, savedLoan);
+    }
+
     // Send email
     try {
-      User customerUser =
-          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
       if (customerUser != null) {
         emailService.sendLoanDisbursedEmail(
             customerUser.getEmail(),
