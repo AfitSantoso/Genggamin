@@ -107,6 +107,8 @@ public class CustomerService {
     customer.setMonthlyIncome(request.getMonthlyIncome());
     customer.setOccupation(request.getOccupation());
     customer.setMotherMaidenName(request.getMotherMaidenName());
+    customer.setAccountNumber(request.getAccountNumber());
+    customer.setAccountHolderName(request.getAccountHolderName());
   }
 
   private void handleFileUploads(Customer customer, User user, String nik, MultipartFile fileKtp, MultipartFile fileSelfie, MultipartFile filePayslip) {
@@ -178,6 +180,8 @@ public class CustomerService {
     response.setCustomerPhone(customer.getPhone());
     response.setCurrentAddress(customer.getCurrentAddress());
     response.setMotherMaidenName(customer.getMotherMaidenName());
+    response.setAccountNumber(customer.getAccountNumber());
+    response.setAccountHolderName(customer.getAccountHolderName());
     response.setKtpImagePath(generateFileUrl(customer.getKtpImagePath()));
     response.setSelfieImagePath(generateFileUrl(customer.getSelfieImagePath()));
     response.setPayslipImagePath(generateFileUrl(customer.getPayslipImagePath()));

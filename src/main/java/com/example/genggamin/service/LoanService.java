@@ -512,14 +512,10 @@ public class LoanService {
     // Manually set disbursement notes from request since we don't persist it
     savedLoan.setDisbursementNotes(request.getNotes());
 
-    // Notifications
-    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
-    if (customerUser != null) {
-        notificationService.sendNotification(customerUser, NotificationType.LOAN_DISBURSED, savedLoan);
-    }
-
     // Send email
     try {
+      User customerUser =
+          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
       if (customerUser != null) {
         emailService.sendLoanDisbursedEmail(
             customerUser.getEmail(),
