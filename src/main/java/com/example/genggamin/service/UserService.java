@@ -157,45 +157,53 @@ public class UserService {
     user.setPassword(passwordEncoder.encode(req.getPassword()));
     user.setIsActive(true);
 
-    // Handle roles assignment
-    if (req.getRoles() != null && !req.getRoles().isEmpty()) {
-      // If roles are provided, assign them
-      for (String roleName : req.getRoles()) {
-        Role role =
-            roleRepository
-                .findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role " + roleName + " tidak ditemukan"));
-        user.getRoles().add(role);
-      }
-    } else {
-      // If no roles provided, assign default CUSTOMER role
-      Role defaultRole =
-          roleRepository
-              .findByName("CUSTOMER")
-              .orElseGet(
-                  () -> {
-                    Role r =
-                        Role.builder()
-                            .name("CUSTOMER")
-                            .description("Default customer role")
-                            .build();
-                    return roleRepository.save(r);
-                  });
-      user.getRoles().add(defaultRole);
-    }
+    // Forces default CUSTOMER role for public registration
+    Role defaultRole =
+        roleRepository
+            .findByName("CUSTOMER")
+            .orElseGet(
+                () -> {
+                  Role r =
+                      Role.builder()
+                          .name("CUSTOMER")
+                          .description("Default customer role")
+                          .build();
+                  return roleRepository.save(r);
+                });
+    user.getRoles().add(defaultRole);
 
     User savedUser = userRepository.saveAndFlush(user);
 
-    // Kirim email konfirmasi jika role adalah CUSTOMER
-    boolean isCustomer =
-        savedUser.getRoles().stream().anyMatch(r -> "CUSTOMER".equals(r.getName()));
-
-    if (isCustomer) {
-      emailService.sendRegistrationConfirmationEmail(
-          savedUser.getEmail(), savedUser.getUsername());
-    }
+    emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), savedUser.getUsername());
 
     return savedUser;
+  }
+
+  /**
+   * Create staff user (Marketing, Branch Manager, Backoffice) - Admin only
+   */
+  @Caching(
+      evict = {
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "userByUsername", key = "#req.username")
+      })
+  public User createStaffUser(CreateUserRequest req) {
+    // Validate required roles
+    if (req.getRoles() == null || req.getRoles().isEmpty()) {
+      throw new RuntimeException("Role wajib dipilih untuk staff");
+    }
+
+    // Allowed roles for staff
+    java.util.Set<String> allowedRoles = java.util.Set.of("MARKETING", "BRANCH_MANAGER", "BACK_OFFICE");
+    
+    // Validate that all requested roles are valid staff roles
+    for (String roleName : req.getRoles()) {
+        if (!allowedRoles.contains(roleName)) {
+            throw new RuntimeException("Role tidak valid untuk staff: " + roleName + ". Valid roles: " + allowedRoles);
+        }
+    }
+
+    return createUserFromRequest(req);
   }
 
   /**

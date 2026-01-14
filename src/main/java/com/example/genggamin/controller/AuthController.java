@@ -1,17 +1,21 @@
 // penambahan auth controller untuk handle login
 package com.example.genggamin.controller;
 
+import com.example.genggamin.dto.ApiResponse;
 import com.example.genggamin.dto.CreateUserRequest;
 import com.example.genggamin.dto.ForgotPasswordRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
 import com.example.genggamin.dto.ResetPasswordRequest;
+import com.example.genggamin.dto.UserResponse;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.security.JwtUtil;
 import com.example.genggamin.service.PasswordResetService;
 import com.example.genggamin.service.TokenBlacklistService;
 import com.example.genggamin.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -63,6 +67,21 @@ public class AuthController {
           .body(java.util.Map.of("message", "User created", "id", u.getId()));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+    }
+  }
+
+  @PostMapping("/register/staff")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+  public ResponseEntity<?> registerStaff(@RequestBody CreateUserRequest req) {
+    try {
+      User saved = userService.createStaffUser(req);
+      return ResponseEntity.status(HttpStatus.CREATED)
+          .body(
+              new ApiResponse<>(
+                  true, "Staff user created successfully", mapToUserResponse(saved)));
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest()
+          .body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 
@@ -130,5 +149,21 @@ public class AuthController {
       return ResponseEntity.badRequest()
           .body(java.util.Map.of("success", false, "message", e.getMessage()));
     }
+  }
+
+  private UserResponse mapToUserResponse(User user) {
+    UserResponse dto = new UserResponse();
+    dto.setId(user.getId());
+    dto.setUsername(user.getUsername());
+    dto.setEmail(user.getEmail());
+    dto.setFullName(user.getFullName());
+    dto.setIsActive(user.getIsActive());
+    if (user.getRoles() != null) {
+      dto.setRoles(
+          user.getRoles().stream()
+              .map(role -> role.getName())
+              .collect(java.util.stream.Collectors.toList()));
+    }
+    return dto;
   }
 }
