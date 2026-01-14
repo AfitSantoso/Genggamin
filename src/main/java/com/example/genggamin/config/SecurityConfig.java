@@ -46,6 +46,9 @@ public class SecurityConfig {
                     // Allow public access to GET plafonds endpoints
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/plafonds/**")
                     .permitAll()
+                    // Allow public access to POST simulation endpoint
+                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/plafonds/simulate")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

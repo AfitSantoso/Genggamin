@@ -1,9 +1,12 @@
 package com.example.genggamin.controller;
 
 import com.example.genggamin.dto.ApiResponse;
+import com.example.genggamin.dto.LoanSimulationRequest;
+import com.example.genggamin.dto.LoanSimulationResponse;
 import com.example.genggamin.dto.PlafondRequest;
 import com.example.genggamin.dto.PlafondResponse;
 import com.example.genggamin.service.PlafondService;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -130,7 +133,46 @@ public class PlafondController {
                   .build());
     }
   }
+  /**
+   * Simulate loan installment (GET version) PUBLIC - Accessible without authentication
+   * Allows simulation via query params e.g. /plafonds/simulate?amount=10000000&tenor=12
+   */
+  @GetMapping("/simulate")
+  public ResponseEntity<ApiResponse<LoanSimulationResponse>> simulateLoanGet(
+      @Valid LoanSimulationRequest request) {
+    return simulateLoan(request);
+  }
 
+  /**
+   * Simulate loan installment (POST version) PUBLIC - Accessible without authentication
+   */
+  @PostMapping("/simulate")
+  public ResponseEntity<ApiResponse<LoanSimulationResponse>> simulateLoan(
+      @Valid @RequestBody LoanSimulationRequest request) {
+    try {
+      LoanSimulationResponse simulation = plafondService.simulateLoan(request);
+      return ResponseEntity.ok(
+          ApiResponse.<LoanSimulationResponse>builder()
+              .success(true)
+              .message("Loan simulation successful")
+              .data(simulation)
+              .build());
+    } catch (RuntimeException e) {
+       return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body(
+              ApiResponse.<LoanSimulationResponse>builder()
+                  .success(false)
+                  .message(e.getMessage())
+                  .build());
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(
+              ApiResponse.<LoanSimulationResponse>builder()
+                  .success(false)
+                  .message("Simulation failed: " + e.getMessage())
+                  .build());
+    }
+  }
   /** Create new plafond Only accessible by ADMIN */
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
