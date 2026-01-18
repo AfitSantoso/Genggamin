@@ -1,6 +1,7 @@
 package com.example.genggamin.service;
 
 import com.example.genggamin.dto.CreateUserRequest;
+import com.example.genggamin.dto.UpdateUserRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
 import com.example.genggamin.dto.UserResponse;
@@ -300,5 +301,67 @@ public class UserService {
             .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
     return mapToUserResponse(user);
+  }
+
+  /**
+   * Update staff user - Admin only
+   */
+  @Caching(
+      evict = {
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "userByUsername", allEntries = true),
+        @CacheEvict(value = "userById", key = "#id")
+      })
+  public User updateStaffUser(Long id, UpdateUserRequest req) {
+    User user = userRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+
+    // Check username uniqueness if changed
+    if (req.getUsername() != null && !req.getUsername().equals(user.getUsername())) {
+      if (userRepository.existsByUsername(req.getUsername())) {
+        throw new RuntimeException("Username sudah digunakan");
+      }
+      user.setUsername(req.getUsername());
+    }
+
+    // Check email uniqueness if changed
+    if (req.getEmail() != null && !req.getEmail().equals(user.getEmail())) {
+      if (userRepository.existsByEmail(req.getEmail())) {
+        throw new RuntimeException("Email sudah digunakan");
+      }
+      user.setEmail(req.getEmail());
+    }
+
+    if (req.getFullName() != null) {
+      user.setFullName(req.getFullName());
+    }
+
+    if (req.getPassword() != null && !req.getPassword().isEmpty()) {
+      user.setPassword(passwordEncoder.encode(req.getPassword()));
+    }
+
+    if (req.getIsActive() != null) {
+      user.setIsActive(req.getIsActive());
+    }
+
+    // Handle roles update if provided
+    if (req.getRoles() != null && !req.getRoles().isEmpty()) {
+      // Validate roles similar to register/staff
+      java.util.Set<String> allowedRoles = java.util.Set.of("MARKETING", "BRANCH_MANAGER", "BACK_OFFICE");
+      for (String roleName : req.getRoles()) {
+        if (!allowedRoles.contains(roleName)) {
+           throw new RuntimeException("Role tidak valid untuk staff: " + roleName + ". Valid roles: " + allowedRoles);
+        }
+      }
+      
+      user.getRoles().clear();
+      for (String roleName : req.getRoles()) {
+        Role role = roleRepository.findByName(roleName)
+            .orElseThrow(() -> new RuntimeException("Role " + roleName + " tidak ditemukan"));
+        user.getRoles().add(role);
+      }
+    }
+
+    return userRepository.saveAndFlush(user);
   }
 }
