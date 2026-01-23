@@ -133,9 +133,10 @@ public class PlafondController {
                   .build());
     }
   }
+
   /**
-   * Simulate loan installment (GET version) PUBLIC - Accessible without authentication
-   * Allows simulation via query params e.g. /plafonds/simulate?amount=10000000&tenor=12
+   * Simulate loan installment (GET version) PUBLIC - Accessible without authentication Allows
+   * simulation via query params e.g. /plafonds/simulate?amount=10000000&tenor=12
    */
   @GetMapping("/simulate")
   public ResponseEntity<ApiResponse<LoanSimulationResponse>> simulateLoanGet(
@@ -143,9 +144,7 @@ public class PlafondController {
     return simulateLoan(request);
   }
 
-  /**
-   * Simulate loan installment (POST version) PUBLIC - Accessible without authentication
-   */
+  /** Simulate loan installment (POST version) PUBLIC - Accessible without authentication */
   @PostMapping("/simulate")
   public ResponseEntity<ApiResponse<LoanSimulationResponse>> simulateLoan(
       @Valid @RequestBody LoanSimulationRequest request) {
@@ -158,7 +157,7 @@ public class PlafondController {
               .data(simulation)
               .build());
     } catch (RuntimeException e) {
-       return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
           .body(
               ApiResponse.<LoanSimulationResponse>builder()
                   .success(false)
@@ -173,6 +172,7 @@ public class PlafondController {
                   .build());
     }
   }
+
   /** Create new plafond Only accessible by ADMIN */
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")

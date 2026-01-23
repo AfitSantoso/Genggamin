@@ -21,7 +21,8 @@ public class FileStorageService {
     try {
       Files.createDirectories(this.fileStorageLocation);
     } catch (Exception ex) {
-      throw new RuntimeException("Could not create the directory where the uploaded files will be stored.", ex);
+      throw new RuntimeException(
+          "Could not create the directory where the uploaded files will be stored.", ex);
     }
   }
 
@@ -32,7 +33,8 @@ public class FileStorageService {
     try {
       // Check if the file's name contains invalid characters
       if (originalFileName.contains("..")) {
-        throw new RuntimeException("Sorry! Filename contains invalid path sequence " + originalFileName);
+        throw new RuntimeException(
+            "Sorry! Filename contains invalid path sequence " + originalFileName);
       }
 
       // Determine extension
@@ -41,7 +43,7 @@ public class FileStorageService {
       if (i > 0) {
         extension = originalFileName.substring(i);
       }
-      
+
       String finalFileName = targetFilename + extension;
 
       // Copy file to the target location (Replacing existing file with the same name)
@@ -50,7 +52,8 @@ public class FileStorageService {
 
       return targetLocation.toString();
     } catch (IOException ex) {
-      throw new RuntimeException("Could not store file " + targetFilename + ". Please try again!", ex);
+      throw new RuntimeException(
+          "Could not store file " + targetFilename + ". Please try again!", ex);
     }
   }
 }

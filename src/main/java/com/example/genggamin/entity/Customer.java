@@ -58,8 +58,6 @@ public class Customer {
   @Column(name = "payslip_image_path")
   private String payslipImagePath;
 
-
-
   @Column(name = "occupation", length = 100)
   private String occupation;
 

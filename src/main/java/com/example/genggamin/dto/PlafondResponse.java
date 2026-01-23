@@ -13,6 +13,7 @@ import lombok.*;
 public class PlafondResponse {
 
   private Long id;
+  private String title;
   private BigDecimal minIncome;
   private BigDecimal maxAmount;
   private Long tenorMonth;

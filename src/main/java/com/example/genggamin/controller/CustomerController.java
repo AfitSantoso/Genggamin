@@ -30,11 +30,12 @@ public class CustomerController {
       @RequestPart("data") String requestJson,
       @RequestPart(value = "ktp", required = false) MultipartFile fileKtp,
       @RequestPart(value = "selfie", required = false) MultipartFile fileSelfie,
-      @RequestPart(value = "payslip", required = false) MultipartFile filePayslip) throws JsonProcessingException {
-    
+      @RequestPart(value = "payslip", required = false) MultipartFile filePayslip)
+      throws JsonProcessingException {
+
     // Deserialize manually
     CustomerRequest request = objectMapper.readValue(requestJson, CustomerRequest.class);
-    
+
     Long userId = getAuthenticatedUserId();
 
     CustomerResponse customerResponse =
@@ -60,7 +61,8 @@ public class CustomerController {
 
   @GetMapping("/{customerId}")
   @PreAuthorize("hasAnyRole('MARKETING', 'BRANCH_MANAGER', 'BACK_OFFICE', 'ADMIN')")
-  public ResponseEntity<ApiResponse<CustomerResponse>> getCustomerById(@PathVariable Long customerId) {
+  public ResponseEntity<ApiResponse<CustomerResponse>> getCustomerById(
+      @PathVariable Long customerId) {
     CustomerResponse customerResponse = customerService.getCustomerById(customerId);
 
     ApiResponse<CustomerResponse> response =
@@ -89,10 +91,11 @@ public class CustomerController {
       @RequestPart("data") String requestJson,
       @RequestPart(value = "ktp", required = false) MultipartFile fileKtp,
       @RequestPart(value = "selfie", required = false) MultipartFile fileSelfie,
-      @RequestPart(value = "payslip", required = false) MultipartFile filePayslip) throws JsonProcessingException {
-    
+      @RequestPart(value = "payslip", required = false) MultipartFile filePayslip)
+      throws JsonProcessingException {
+
     CustomerRequest request = objectMapper.readValue(requestJson, CustomerRequest.class);
-    
+
     Long userId = getAuthenticatedUserId();
 
     CustomerResponse customerResponse =

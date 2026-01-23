@@ -52,4 +52,4 @@ app:
     secret: "genggamin-secret-key-change-this-in-production-with-stronger-key"
     expiration: 86400000 # 24 hours in milliseconds
   frontend:
-    url: http://localhost:3000 # URL frontend untuk link reset password di email
+    url: http://localhost:4200 # URL frontend untuk link reset password di email

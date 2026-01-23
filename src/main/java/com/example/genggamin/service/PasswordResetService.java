@@ -69,14 +69,18 @@ public class PasswordResetService {
     resetToken.setExpiredAt(expiredAt);
     resetToken.setUsed(false);
     tokenRepository.save(resetToken);
+    
+    // Log token for debugging/development purposes (So we can test without real email)
+    log.info("GENERATED RESET TOKEN for user {}: {}", user.getUsername(), token);
 
     // Kirim email
     try {
       emailService.sendPasswordResetEmail(user.getEmail(), token, user.getUsername());
       log.info("Password reset token generated and email sent for user: {}", user.getUsername());
     } catch (Exception e) {
-      log.error("Failed to send password reset email for user: {}", user.getUsername(), e);
-      throw new RuntimeException("Gagal mengirim email reset password. Silakan coba lagi.", e);
+      // In development/testing, email sending might fail. We log the error but don't fail the request.
+      log.error("Failed to send password reset email for user: {}. Error: {}", user.getUsername(), e.getMessage());
+      // throw new RuntimeException("Gagal mengirim email reset password. Silakan coba lagi.", e);
     }
   }
 

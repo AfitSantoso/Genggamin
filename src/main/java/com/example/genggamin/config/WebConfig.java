@@ -16,8 +16,7 @@ public class WebConfig implements WebMvcConfigurer {
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
     // Menambahkan handler untuk mengakses file upload secara statis
     // Maps /uploads/kyc/** ke file system lokal
-    registry.addResourceHandler("/uploads/kyc/**")
-            .addResourceLocations("file:" + uploadDir + "/");
+    registry.addResourceHandler("/uploads/kyc/**").addResourceLocations("file:" + uploadDir + "/");
   }
 
   @Override
@@ -28,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
             "http://localhost:4200",
             "https://genggamin-bnmfqx7iu-afitsantosos-projects.vercel.app/",
             "https://*.vercel.app" // Untuk semua deployment Vercel
-        )
+            )
         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         .allowedHeaders("*")
         .allowCredentials(true)

@@ -20,7 +20,7 @@ public class EmailService {
   @Value("${spring.mail.username}")
   private String fromEmail;
 
-  @Value("${app.frontend.url:http://localhost:3000}")
+  @Value("${app.frontend.url:http://localhost:4200}")
   private String frontendUrl;
 
   public EmailService(JavaMailSender mailSender) {
@@ -165,8 +165,7 @@ public class EmailService {
       helper.setTo(toEmail);
       helper.setSubject("Dana Pinjaman Telah Dicairkan - Genggamin");
 
-      String htmlContent =
-          buildLoanDisbursedEmailTemplate(username, loanId, amount, bankAccount);
+      String htmlContent = buildLoanDisbursedEmailTemplate(username, loanId, amount, bankAccount);
       helper.setText(htmlContent, true);
 
       mailSender.send(message);

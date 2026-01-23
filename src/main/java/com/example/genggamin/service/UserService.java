@@ -1,9 +1,9 @@
 package com.example.genggamin.service;
 
 import com.example.genggamin.dto.CreateUserRequest;
-import com.example.genggamin.dto.UpdateUserRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
+import com.example.genggamin.dto.UpdateUserRequest;
 import com.example.genggamin.dto.UserResponse;
 import com.example.genggamin.entity.Role;
 import com.example.genggamin.entity.User;
@@ -94,6 +94,10 @@ public class UserService {
       throw new RuntimeException("Password salah");
     }
 
+    if (Boolean.FALSE.equals(user.getIsActive())) {
+      throw new RuntimeException("User sudah tidak aktif");
+    }
+
     LoginResponse res = new LoginResponse();
     res.setId(cachedUser.getId());
     res.setUsername(cachedUser.getUsername());
@@ -118,6 +122,11 @@ public class UserService {
     if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
       throw new RuntimeException("Password salah");
     }
+
+    if (Boolean.FALSE.equals(user.getIsActive())) {
+      throw new RuntimeException("User sudah tidak aktif");
+    }
+
     return user;
   }
 
@@ -165,10 +174,7 @@ public class UserService {
             .orElseGet(
                 () -> {
                   Role r =
-                      Role.builder()
-                          .name("CUSTOMER")
-                          .description("Default customer role")
-                          .build();
+                      Role.builder().name("CUSTOMER").description("Default customer role").build();
                   return roleRepository.save(r);
                 });
     user.getRoles().add(defaultRole);
@@ -180,9 +186,7 @@ public class UserService {
     return savedUser;
   }
 
-  /**
-   * Create staff user (Marketing, Branch Manager, Backoffice) - Admin only
-   */
+  /** Create staff user (Marketing, Branch Manager, Backoffice) - Admin only */
   @Caching(
       evict = {
         @CacheEvict(value = "users", allEntries = true),
@@ -195,13 +199,15 @@ public class UserService {
     }
 
     // Allowed roles for staff
-    java.util.Set<String> allowedRoles = java.util.Set.of("MARKETING", "BRANCH_MANAGER", "BACK_OFFICE");
-    
+    java.util.Set<String> allowedRoles =
+        java.util.Set.of("MARKETING", "BRANCH_MANAGER", "BACK_OFFICE");
+
     // Validate that all requested roles are valid staff roles
     for (String roleName : req.getRoles()) {
-        if (!allowedRoles.contains(roleName)) {
-            throw new RuntimeException("Role tidak valid untuk staff: " + roleName + ". Valid roles: " + allowedRoles);
-        }
+      if (!allowedRoles.contains(roleName)) {
+        throw new RuntimeException(
+            "Role tidak valid untuk staff: " + roleName + ". Valid roles: " + allowedRoles);
+      }
     }
 
     return createUserFromRequest(req);
@@ -303,9 +309,7 @@ public class UserService {
     return mapToUserResponse(user);
   }
 
-  /**
-   * Update staff user - Admin only
-   */
+  /** Update staff user - Admin only */
   @Caching(
       evict = {
         @CacheEvict(value = "users", allEntries = true),
@@ -313,8 +317,8 @@ public class UserService {
         @CacheEvict(value = "userById", key = "#id")
       })
   public User updateStaffUser(Long id, UpdateUserRequest req) {
-    User user = userRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+    User user =
+        userRepository.findById(id).orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
     // Check username uniqueness if changed
     if (req.getUsername() != null && !req.getUsername().equals(user.getUsername())) {
@@ -347,17 +351,21 @@ public class UserService {
     // Handle roles update if provided
     if (req.getRoles() != null && !req.getRoles().isEmpty()) {
       // Validate roles similar to register/staff
-      java.util.Set<String> allowedRoles = java.util.Set.of("MARKETING", "BRANCH_MANAGER", "BACK_OFFICE");
+      java.util.Set<String> allowedRoles =
+          java.util.Set.of("MARKETING", "BRANCH_MANAGER", "BACK_OFFICE");
       for (String roleName : req.getRoles()) {
         if (!allowedRoles.contains(roleName)) {
-           throw new RuntimeException("Role tidak valid untuk staff: " + roleName + ". Valid roles: " + allowedRoles);
+          throw new RuntimeException(
+              "Role tidak valid untuk staff: " + roleName + ". Valid roles: " + allowedRoles);
         }
       }
-      
+
       user.getRoles().clear();
       for (String roleName : req.getRoles()) {
-        Role role = roleRepository.findByName(roleName)
-            .orElseThrow(() -> new RuntimeException("Role " + roleName + " tidak ditemukan"));
+        Role role =
+            roleRepository
+                .findByName(roleName)
+                .orElseThrow(() -> new RuntimeException("Role " + roleName + " tidak ditemukan"));
         user.getRoles().add(role);
       }
     }

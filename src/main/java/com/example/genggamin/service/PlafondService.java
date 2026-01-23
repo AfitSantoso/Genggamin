@@ -82,53 +82,69 @@ public class PlafondService {
           plafondRepository
               .findByIdActive(request.getPlafondId())
               .orElseThrow(
-                  () -> new RuntimeException("Plafond not found with id: " + request.getPlafondId()));
+                  () ->
+                      new RuntimeException("Plafond not found with id: " + request.getPlafondId()));
 
       // Validate tenor matches (requested tenor must be <= plafond's max tenor)
       if (request.getTenor() > selectedPlafond.getTenorMonth()) {
-        throw new RuntimeException("Requested tenor (" + request.getTenor() + ") exceeds maximum tenor (" + selectedPlafond.getTenorMonth() + ") for this plafond");
+        throw new RuntimeException(
+            "Requested tenor ("
+                + request.getTenor()
+                + ") exceeds maximum tenor ("
+                + selectedPlafond.getTenorMonth()
+                + ") for this plafond");
       }
     } else {
       // Find matching plafond by tenor and amount
       List<Plafond> candidates = plafondRepository.findByTenor(request.getTenor());
-      
+
       // Filter by maxAmount >= requested amount
       // Sort by interest rate ASC (best rate for user)
-      selectedPlafond = candidates.stream()
-          .filter(p -> p.getMaxAmount().compareTo(request.getAmount()) >= 0)
-          .min(Comparator.comparing(Plafond::getInterestRate))
-          .orElseThrow(() -> new RuntimeException("No suitable plafond found for the requested amount and tenor"));
+      selectedPlafond =
+          candidates.stream()
+              .filter(p -> p.getMaxAmount().compareTo(request.getAmount()) >= 0)
+              .min(Comparator.comparing(Plafond::getInterestRate))
+              .orElseThrow(
+                  () ->
+                      new RuntimeException(
+                          "No suitable plafond found for the requested amount and tenor"));
     }
 
     // Validate max amount again just in case (e.g. if plafondId was used but amount exceeds it)
     if (request.getAmount().compareTo(selectedPlafond.getMaxAmount()) > 0) {
-       // Should we block? The user might just want to see hypotheticals.
-       // The prompt says "simulasi", maybe strict validation is good to guide them.
-       // Let's assume strict validation or just warning. I'll throw exception for now to be safe.
-       throw new RuntimeException("Requested amount exceeds the maximum limit for this plafond: " + selectedPlafond.getMaxAmount());
+      // Should we block? The user might just want to see hypotheticals.
+      // The prompt says "simulasi", maybe strict validation is good to guide them.
+      // Let's assume strict validation or just warning. I'll throw exception for now to be safe.
+      throw new RuntimeException(
+          "Requested amount exceeds the maximum limit for this plafond: "
+              + selectedPlafond.getMaxAmount());
     }
 
     BigDecimal principal = request.getAmount();
-    BigDecimal annualRatePercent = selectedPlafond.getInterestRate();
+    BigDecimal monthlyRatePercent = selectedPlafond.getInterestRate();
     BigDecimal tenorMonths = BigDecimal.valueOf(request.getTenor());
 
-    // Calculation: Flat Rate
-    // Interest per year = Principal * (Rate/100)
-    // Total Interest = Interest per year * (Tenor / 12)
+    // Calculation: Flat Rate (Monthly Interest)
+    // Monthly Interest Rate = Rate (from DB)
+    // Total Interest = Principal * (Monthly Rate/100) * Tenor
     // Total Payment = Principal + Total Interest
     // Monthly Installment = Total Payment / Tenor
 
-    BigDecimal rateDecimal = annualRatePercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
-    BigDecimal years = tenorMonths.divide(BigDecimal.valueOf(12), 8, RoundingMode.HALF_UP);
-    
-    BigDecimal totalInterest = principal.multiply(rateDecimal).multiply(years).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal monthlyRateDecimal =
+        monthlyRatePercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
+
+    BigDecimal totalInterest =
+        principal
+            .multiply(monthlyRateDecimal)
+            .multiply(tenorMonths)
+            .setScale(2, RoundingMode.HALF_UP);
     BigDecimal totalPayment = principal.add(totalInterest).setScale(2, RoundingMode.HALF_UP);
     BigDecimal monthlyInstallment = totalPayment.divide(tenorMonths, 2, RoundingMode.HALF_UP);
 
     return LoanSimulationResponse.builder()
         .loanAmount(principal)
         .tenorMonth(request.getTenor())
-        .interestRate(annualRatePercent)
+        .interestRate(monthlyRatePercent)
         .monthlyInstallment(monthlyInstallment)
         .totalInterest(totalInterest)
         .totalPayment(totalPayment)
@@ -152,6 +168,7 @@ public class PlafondService {
     // Build entity
     Plafond plafond =
         Plafond.builder()
+            .title(request.getTitle())
             .minIncome(request.getMinIncome())
             .maxAmount(request.getMaxAmount())
             .tenorMonth(request.getTenorMonth())
@@ -184,6 +201,7 @@ public class PlafondService {
     }
 
     // Update fields
+    plafond.setTitle(request.getTitle());
     plafond.setMinIncome(request.getMinIncome());
     plafond.setMaxAmount(request.getMaxAmount());
     plafond.setTenorMonth(request.getTenorMonth());
@@ -244,6 +262,7 @@ public class PlafondService {
   private PlafondResponse mapToResponse(Plafond plafond) {
     return PlafondResponse.builder()
         .id(plafond.getId())
+        .title(plafond.getTitle())
         .minIncome(plafond.getMinIncome())
         .maxAmount(plafond.getMaxAmount())
         .tenorMonth(plafond.getTenorMonth())

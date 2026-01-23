@@ -77,11 +77,9 @@ public class AuthController {
       User saved = userService.createStaffUser(req);
       return ResponseEntity.status(HttpStatus.CREATED)
           .body(
-              new ApiResponse<>(
-                  true, "Staff user created successfully", mapToUserResponse(saved)));
+              new ApiResponse<>(true, "Staff user created successfully", mapToUserResponse(saved)));
     } catch (RuntimeException e) {
-      return ResponseEntity.badRequest()
-          .body(new ApiResponse<>(false, e.getMessage(), null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 

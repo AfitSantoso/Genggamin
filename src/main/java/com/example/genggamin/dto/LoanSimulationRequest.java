@@ -13,13 +13,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanSimulationRequest {
-    @NotNull(message = "Loan amount is required")
-    @DecimalMin(value = "1.0", message = "Loan amount must be greater than 0")
-    private BigDecimal amount;
+  @NotNull(message = "Loan amount is required") @DecimalMin(value = "1.0", message = "Loan amount must be greater than 0")
+  private BigDecimal amount;
 
-    @NotNull(message = "Tenor is required")
-    private Long tenor;
-    
-    // Optional: if user selects a specific plafond
-    private Long plafondId;
+  @NotNull(message = "Tenor is required") private Long tenor;
+
+  // Optional: if user selects a specific plafond
+  private Long plafondId;
 }
