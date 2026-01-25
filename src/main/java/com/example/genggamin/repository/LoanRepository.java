@@ -24,4 +24,16 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
           + "(SELECT la.loanId FROM LoanApproval la) "
           + "ORDER BY l.updatedAt DESC")
   List<Loan> findAllApprovedLoans();
+
+  @org.springframework.data.jpa.repository.query.Procedure(procedureName = "sp_CreateLoanWithLimitCheck")
+  void createLoanWithLimitCheck(
+      @org.springframework.data.repository.query.Param("CustomerID") Long customerId,
+      @org.springframework.data.repository.query.Param("PlafondID") Long plafondId,
+      @org.springframework.data.repository.query.Param("LoanAmount") java.math.BigDecimal loanAmount,
+      @org.springframework.data.repository.query.Param("TenorMonth") Long tenorMonth,
+      @org.springframework.data.repository.query.Param("InterestRate") java.math.BigDecimal interestRate,
+      @org.springframework.data.repository.query.Param("Purpose") String purpose);
+
+  @Query(value = "SELECT TOP 1 * FROM loans WHERE customer_id = :customerId ORDER BY id DESC", nativeQuery = true)
+  java.util.Optional<Loan> findLatestLoanByCustomerId(@org.springframework.data.repository.query.Param("customerId") Long customerId);
 }

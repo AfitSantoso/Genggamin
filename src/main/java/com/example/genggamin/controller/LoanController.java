@@ -1,6 +1,7 @@
 package com.example.genggamin.controller;
 
 import com.example.genggamin.dto.ApiResponse;
+import com.example.genggamin.dto.CustomerLimitResponse;
 import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
@@ -41,6 +42,30 @@ public class LoanController {
     } catch (Exception e) {
       return ResponseEntity.badRequest()
           .body(ApiResponse.<LoanResponse>builder().success(false).message(e.getMessage()).build());
+    }
+  }
+
+  /** CUSTOMER: Get my limits */
+  @GetMapping("/my-limits")
+  @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+  public ResponseEntity<ApiResponse<List<CustomerLimitResponse>>> getMyLimits(
+      Authentication authentication) {
+    try {
+      String username = authentication.getName();
+      List<CustomerLimitResponse> limits = loanService.getMyLimits(username);
+      return ResponseEntity.ok(
+          ApiResponse.<List<CustomerLimitResponse>>builder()
+              .success(true)
+              .message("Limits retrieved successfully")
+              .data(limits)
+              .build());
+    } catch (Exception e) {
+      return ResponseEntity.badRequest()
+          .body(
+              ApiResponse.<List<CustomerLimitResponse>>builder()
+                  .success(false)
+                  .message(e.getMessage())
+                  .build());
     }
   }
 
