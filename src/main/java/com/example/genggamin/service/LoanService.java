@@ -1,5 +1,6 @@
 package com.example.genggamin.service;
 
+import com.example.genggamin.dto.CustomerLimitResponse;
 import com.example.genggamin.dto.LoanActionRequest;
 import com.example.genggamin.dto.LoanRequest;
 import com.example.genggamin.dto.LoanResponse;
@@ -22,6 +23,9 @@ import com.example.genggamin.repository.LoanRepository;
 import com.example.genggamin.repository.LoanReviewRepository;
 import com.example.genggamin.repository.PlafondRepository;
 import com.example.genggamin.repository.UserRepository;
+import com.example.genggamin.entity.CustomerLimit;
+import com.example.genggamin.repository.CustomerLimitRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,6 +44,7 @@ public class LoanService {
   private final LoanDisbursementRepository loanDisbursementRepository;
   private final EmailService emailService;
   private final NotificationService notificationService;
+  private final CustomerLimitRepository customerLimitRepository;
 
   public LoanService(
       LoanRepository loanRepository,
@@ -50,7 +55,8 @@ public class LoanService {
       LoanApprovalRepository loanApprovalRepository,
       LoanDisbursementRepository loanDisbursementRepository,
       EmailService emailService,
-      NotificationService notificationService) {
+      NotificationService notificationService,
+      CustomerLimitRepository customerLimitRepository) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
     this.customerRepository = customerRepository;
@@ -60,6 +66,7 @@ public class LoanService {
     this.loanDisbursementRepository = loanDisbursementRepository;
     this.emailService = emailService;
     this.notificationService = notificationService;
+    this.customerLimitRepository = customerLimitRepository;
   }
 
   @Transactional
@@ -127,19 +134,55 @@ public class LoanService {
               + " months) for selected plafond");
     }
 
-    Loan loan =
-        Loan.builder()
-            .customer(customer)
-            .plafondId(plafond.getId())
-            .amount(request.getAmount())
-            .tenureMonths(request.getTenureMonths())
-            .interestRate(plafond.getInterestRate())
-            .purpose(request.getPurpose())
-            .status(LoanStatus.SUBMITTED)
-            .submittedAt(LocalDateTime.now())
-            .build();
+    // Check Customer Limit (Initialize if not exists)
+    CustomerLimit customerLimit =
+        customerLimitRepository
+            .findByCustomer_IdAndPlafond_Id(customer.getId(), plafond.getId())
+            .orElseGet(
+                () ->
+                    CustomerLimit.builder()
+                        .customer(customer)
+                        .plafond(plafond)
+                        .totalLimit(plafond.getMaxAmount())
+                        .availableLimit(plafond.getMaxAmount())
+                        .isLocked(false)
+                        .build());
 
-    Loan savedLoan = loanRepository.save(loan);
+    // Save if new so the SP references an existing row
+    // MUST use saveAndFlush to ensure the row exists before the Stored Procedure is called
+    if (customerLimit.getId() == null) {
+      customerLimitRepository.saveAndFlush(customerLimit);
+    }
+  
+    // Call Stored Procedure to create loan and update limit atomically
+    try {
+      loanRepository.createLoanWithLimitCheck(
+          customer.getId(),
+          plafond.getId(),
+          request.getAmount(),
+          request.getTenureMonths(),
+          plafond.getInterestRate(),
+          request.getPurpose());
+    } catch (Exception e) {
+      // Extract specific error message from Stored Procedure
+      String errorMessage = e.getMessage();
+      if (errorMessage != null && errorMessage.contains("Limit tidak mencukupi")) {
+        throw new RuntimeException("Limit tidak mencukupi atau data limit tidak ditemukan.");
+      }
+      // Attempt to find cause if message is wrapped deeper
+      Throwable cause = e.getCause();
+      while (cause != null) {
+        if (cause.getMessage() != null && cause.getMessage().contains("Limit tidak mencukupi")) {
+          throw new RuntimeException("Limit tidak mencukupi atau data limit tidak ditemukan.");
+        }
+        cause = cause.getCause();
+      }
+      throw new RuntimeException("Failed to submit loan: " + e.getMessage());
+    }
+
+    // Fetch the newly created loan
+    Loan savedLoan = loanRepository.findLatestLoanByCustomerId(customer.getId())
+            .orElseThrow(() -> new RuntimeException("Failed to retrieve created loan"));
 
     // Notify Customer
     notificationService.sendNotification(user, NotificationType.LOAN_SUBMISSION, savedLoan);
@@ -215,6 +258,23 @@ public class LoanService {
               populateLoanDetails(loan);
               return LoanResponse.fromEntity(loan);
             })
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<CustomerLimitResponse> getMyLimits(String username) {
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    Customer customer =
+        customerRepository
+            .findByUserId(user.getId())
+            .orElseThrow(() -> new RuntimeException("Customer profile not found"));
+
+    return customerLimitRepository.findByCustomer_Id(customer.getId()).stream()
+        .map(CustomerLimitResponse::fromEntity)
         .collect(Collectors.toList());
   }
 
@@ -297,6 +357,16 @@ public class LoanService {
 
     // Send email if rejected
     if (newLoanStatus == LoanStatus.REJECTED) {
+      // Restore Limit if Rejected
+       CustomerLimit limit =
+          customerLimitRepository
+              .findByCustomer_IdAndPlafond_Id(
+                  savedLoan.getCustomer().getId(), savedLoan.getPlafondId())
+              .orElseThrow(() -> new RuntimeException("Customer limit not found"));
+      
+      limit.setAvailableLimit(limit.getAvailableLimit().add(savedLoan.getAmount()));
+      customerLimitRepository.save(limit);
+
       try {
         if (customerUser != null) {
           emailService.sendLoanRejectedEmail(
@@ -395,6 +465,9 @@ public class LoanService {
     // Notifications
     User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
     if (newLoanStatus == LoanStatus.APPROVED) {
+      // Note: Limit was already deducted at SUBMISSION via SP.
+      // We do not need to deduct it here again.
+
       if (customerUser != null) {
         notificationService.sendNotification(
             customerUser, NotificationType.LOAN_APPROVED, savedLoan);
@@ -406,6 +479,16 @@ public class LoanService {
             bo, NotificationType.READY_FOR_DISBURSEMENT, savedLoan);
       }
     } else if (newLoanStatus == LoanStatus.REJECTED) {
+      // Restore Limit if Rejected
+       CustomerLimit limit =
+          customerLimitRepository
+              .findByCustomer_IdAndPlafond_Id(
+                  savedLoan.getCustomer().getId(), savedLoan.getPlafondId())
+              .orElseThrow(() -> new RuntimeException("Customer limit not found"));
+      
+      limit.setAvailableLimit(limit.getAvailableLimit().add(savedLoan.getAmount()));
+      customerLimitRepository.save(limit);
+
       if (customerUser != null) {
         notificationService.sendNotification(
             customerUser, NotificationType.LOAN_REJECTED, savedLoan);
@@ -514,6 +597,11 @@ public class LoanService {
 
     // Manually set disbursement notes from request since we don't persist it
     savedLoan.setDisbursementNotes(request.getNotes());
+
+    // Update Customer Debt
+    Customer customer = savedLoan.getCustomer();
+    customer.setCurrentTotalDebt(customer.getCurrentTotalDebt().add(savedLoan.getAmount()));
+    customerRepository.save(customer);
 
     // Send email
     try {

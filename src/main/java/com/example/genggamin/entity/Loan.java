@@ -78,6 +78,7 @@ public class Loan {
     UNDER_REVIEW,
     APPROVED,
     REJECTED,
-    DISBURSED
+    DISBURSED,
+    CLOSED
   }
 }

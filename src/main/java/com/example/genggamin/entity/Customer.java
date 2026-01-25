@@ -73,6 +73,9 @@ public class Customer {
   @Column(name = "created_at")
   private LocalDateTime createdAt;
 
+  @Column(name = "current_total_debt", precision = 18, scale = 2)
+  private BigDecimal currentTotalDebt = BigDecimal.ZERO;
+
   @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<EmergencyContact> emergencyContacts = new ArrayList<>();
 
