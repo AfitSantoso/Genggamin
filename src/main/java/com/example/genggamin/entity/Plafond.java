@@ -27,6 +27,9 @@ public class Plafond {
   @Column(name = "min_income", nullable = false, precision = 18, scale = 2)
   private BigDecimal minIncome;
 
+  @Column(name = "title", length = 100)
+  private String title;
+
   @Column(name = "max_amount", nullable = false, precision = 18, scale = 2)
   private BigDecimal maxAmount;
 

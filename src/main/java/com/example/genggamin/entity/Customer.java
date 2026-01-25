@@ -58,13 +58,17 @@ public class Customer {
   @Column(name = "payslip_image_path")
   private String payslipImagePath;
 
-
-
   @Column(name = "occupation", length = 100)
   private String occupation;
 
   @Column(name = "mother_maiden_name", length = 150)
   private String motherMaidenName;
+
+  @Column(name = "account_number", length = 50)
+  private String accountNumber;
+
+  @Column(name = "account_holder_name", length = 150)
+  private String accountHolderName;
 
   @Column(name = "created_at")
   private LocalDateTime createdAt;

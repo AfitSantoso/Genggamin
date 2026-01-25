@@ -30,6 +30,8 @@ public class CustomerResponse {
   private String selfieImagePath;
   private String payslipImagePath;
   private String motherMaidenName;
+  private String accountNumber;
+  private String accountHolderName;
   private List<EmergencyContactResponse> emergencyContacts;
   private LocalDateTime createdAt;
 }

@@ -14,6 +14,7 @@ import com.example.genggamin.entity.LoanDisbursement;
 import com.example.genggamin.entity.LoanReview;
 import com.example.genggamin.entity.Plafond;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.enums.NotificationType;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.LoanApprovalRepository;
 import com.example.genggamin.repository.LoanDisbursementRepository;
@@ -38,6 +39,7 @@ public class LoanService {
   private final LoanApprovalRepository loanApprovalRepository;
   private final LoanDisbursementRepository loanDisbursementRepository;
   private final EmailService emailService;
+  private final NotificationService notificationService;
 
   public LoanService(
       LoanRepository loanRepository,
@@ -47,7 +49,8 @@ public class LoanService {
       LoanReviewRepository loanReviewRepository,
       LoanApprovalRepository loanApprovalRepository,
       LoanDisbursementRepository loanDisbursementRepository,
-      EmailService emailService) {
+      EmailService emailService,
+      NotificationService notificationService) {
     this.loanRepository = loanRepository;
     this.userRepository = userRepository;
     this.customerRepository = customerRepository;
@@ -56,6 +59,7 @@ public class LoanService {
     this.loanApprovalRepository = loanApprovalRepository;
     this.loanDisbursementRepository = loanDisbursementRepository;
     this.emailService = emailService;
+    this.notificationService = notificationService;
   }
 
   @Transactional
@@ -82,7 +86,8 @@ public class LoanService {
     Plafond plafond =
         plafondRepository
             .findById(request.getPlafondId())
-            .orElseThrow(() -> new RuntimeException("Plafond not found with ID: " + request.getPlafondId()));
+            .orElseThrow(
+                () -> new RuntimeException("Plafond not found with ID: " + request.getPlafondId()));
 
     // Validasi plafond aktif
     if (!plafond.getIsActive()) {
@@ -93,12 +98,13 @@ public class LoanService {
     List<Plafond> eligiblePlafonds =
         plafondRepository.findByIncomeRange(customer.getMonthlyIncome());
 
-    boolean isEligible = eligiblePlafonds.stream()
-        .anyMatch(p -> p.getId().equals(plafond.getId()));
+    boolean isEligible = eligiblePlafonds.stream().anyMatch(p -> p.getId().equals(plafond.getId()));
 
     if (!isEligible) {
       throw new RuntimeException(
-          "Selected plafond is not eligible for your income level (Rp " + customer.getMonthlyIncome() + ")");
+          "Selected plafond is not eligible for your income level (Rp "
+              + customer.getMonthlyIncome()
+              + ")");
     }
 
     // Validasi amount tidak melebihi max plafond
@@ -134,12 +140,22 @@ public class LoanService {
             .build();
 
     Loan savedLoan = loanRepository.save(loan);
+
+    // Notify Customer
+    notificationService.sendNotification(user, NotificationType.LOAN_SUBMISSION, savedLoan);
+
+    // Notify Marketing Staff (Simulated broadcast)
+    List<User> marketingStaff = userRepository.findByRoles_Name("MARKETING");
+    for (User marketing : marketingStaff) {
+      notificationService.sendNotification(marketing, NotificationType.LOAN_NEW, savedLoan);
+    }
+
     return LoanResponse.fromEntity(savedLoan);
   }
 
   /**
-   * Populate review and approval data from loan_reviews and loan_approvals tables into Loan
-   * @Transient fields
+   * Populate review and approval data from loan_reviews and loan_approvals tables into
+   * Loan @Transient fields
    */
   private void populateLoanDetails(Loan loan) {
     // Populate review data
@@ -263,11 +279,25 @@ public class LoanService {
     // Populate review details
     populateLoanDetails(savedLoan);
 
+    // Notifications
+    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+
+    if (newLoanStatus == LoanStatus.UNDER_REVIEW) {
+      // Notify Branch Manager
+      List<User> branchManagers = userRepository.findByRoles_Name("BRANCH_MANAGER");
+      for (User bm : branchManagers) {
+        notificationService.sendNotification(bm, NotificationType.READY_FOR_APPROVAL, savedLoan);
+      }
+    } else if (newLoanStatus == LoanStatus.REJECTED) {
+      if (customerUser != null) {
+        notificationService.sendNotification(
+            customerUser, NotificationType.LOAN_REJECTED, savedLoan);
+      }
+    }
+
     // Send email if rejected
     if (newLoanStatus == LoanStatus.REJECTED) {
       try {
-        User customerUser =
-            userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
         if (customerUser != null) {
           emailService.sendLoanRejectedEmail(
               customerUser.getEmail(),
@@ -296,7 +326,8 @@ public class LoanService {
                       .findByLoanId(loan.getId())
                       .orElseThrow(
                           () ->
-                              new RuntimeException("Review not found for loan id: " + loan.getId()));
+                              new RuntimeException(
+                                  "Review not found for loan id: " + loan.getId()));
               return LoanWithReviewResponse.fromEntities(loan, review);
             })
         .collect(Collectors.toList());
@@ -361,10 +392,28 @@ public class LoanService {
     // Populate previous stages details (Review & Approval)
     populateLoanDetails(savedLoan);
 
+    // Notifications
+    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+    if (newLoanStatus == LoanStatus.APPROVED) {
+      if (customerUser != null) {
+        notificationService.sendNotification(
+            customerUser, NotificationType.LOAN_APPROVED, savedLoan);
+      }
+      // Notify Back Office
+      List<User> backOfficeStaff = userRepository.findByRoles_Name("BACK_OFFICE");
+      for (User bo : backOfficeStaff) {
+        notificationService.sendNotification(
+            bo, NotificationType.READY_FOR_DISBURSEMENT, savedLoan);
+      }
+    } else if (newLoanStatus == LoanStatus.REJECTED) {
+      if (customerUser != null) {
+        notificationService.sendNotification(
+            customerUser, NotificationType.LOAN_REJECTED, savedLoan);
+      }
+    }
+
     // Send email
     try {
-      User customerUser =
-          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
       if (customerUser != null) {
         if (newLoanStatus == LoanStatus.APPROVED) {
           emailService.sendLoanApprovedEmail(
@@ -450,11 +499,7 @@ public class LoanService {
     // Save to loan_disbursements table
     LoanDisbursement disbursement =
         new LoanDisbursement(
-            loanId,
-            user.getId(),
-            loan.getAmount(),
-            request.getBankAccount(),
-            "COMPLETED");
+            loanId, user.getId(), loan.getAmount(), request.getBankAccount(), "COMPLETED");
 
     loanDisbursementRepository.save(disbursement);
 
@@ -463,17 +508,16 @@ public class LoanService {
     loan.setUpdatedAt(LocalDateTime.now());
 
     Loan savedLoan = loanRepository.save(loan);
-    
+
     // Populate previous stages details (Review, Approval, Disbursement)
     populateLoanDetails(savedLoan);
-    
+
     // Manually set disbursement notes from request since we don't persist it
     savedLoan.setDisbursementNotes(request.getNotes());
 
     // Send email
     try {
-      User customerUser =
-          userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
+      User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
       if (customerUser != null) {
         emailService.sendLoanDisbursedEmail(
             customerUser.getEmail(),
@@ -498,15 +542,13 @@ public class LoanService {
             loan -> {
               // Find disbursement, return null if not found (will be filtered out)
               LoanDisbursement disbursement =
-                  loanDisbursementRepository
-                      .findByLoanId(loan.getId())
-                      .orElse(null);
-              
+                  loanDisbursementRepository.findByLoanId(loan.getId()).orElse(null);
+
               // Skip loan if no disbursement data found
               if (disbursement == null) {
                 return null;
               }
-              
+
               LoanWithDisbursementResponse response = new LoanWithDisbursementResponse();
               // Set loan fields
               response.setId(loan.getId());
@@ -520,7 +562,7 @@ public class LoanService {
               response.setSubmissionDate(loan.getSubmittedAt());
               response.setCreatedAt(loan.getCreatedAt());
               response.setUpdatedAt(loan.getUpdatedAt());
-              
+
               // Set disbursement fields
               response.setDisbursementId(disbursement.getId());
               response.setDisbursedBy(disbursement.getDisbursedBy());
@@ -528,17 +570,19 @@ public class LoanService {
               response.setDisbursementDate(disbursement.getDisbursementDate());
               response.setBankAccount(disbursement.getBankAccount());
               response.setDisbursementStatus(disbursement.getStatus());
-              
+
               // Populate approval details
-              loanApprovalRepository.findByLoanId(loan.getId())
-                  .ifPresent(approval -> {
-                      response.setApprovalId(approval.getId());
-                      response.setApprovedBy(approval.getApprovedBy());
-                      response.setApprovalStatus(approval.getApprovalStatus());
-                      response.setApprovalNotes(approval.getApprovalNotes());
-                      response.setApprovedAt(approval.getApprovedAt());
-                  });
-              
+              loanApprovalRepository
+                  .findByLoanId(loan.getId())
+                  .ifPresent(
+                      approval -> {
+                        response.setApprovalId(approval.getId());
+                        response.setApprovedBy(approval.getApprovedBy());
+                        response.setApprovalStatus(approval.getApprovalStatus());
+                        response.setApprovalNotes(approval.getApprovalNotes());
+                        response.setApprovedAt(approval.getApprovedAt());
+                      });
+
               return response;
             })
         .filter(response -> response != null) // Filter out null responses

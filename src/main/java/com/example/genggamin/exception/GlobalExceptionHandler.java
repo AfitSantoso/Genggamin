@@ -11,13 +11,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
   @ExceptionHandler(JsonProcessingException.class)
-  public ResponseEntity<ApiResponse<Object>> handleJsonProcessingException(JsonProcessingException e) {
-    ApiResponse<Object> response = new ApiResponse<>(false, "Invalid JSON format: " + e.getMessage(), null);
+  public ResponseEntity<ApiResponse<Object>> handleJsonProcessingException(
+      JsonProcessingException e) {
+    ApiResponse<Object> response =
+        new ApiResponse<>(false, "Invalid JSON format: " + e.getMessage(), null);
     return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException e) {
+  public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
+      ResourceNotFoundException e) {
     ApiResponse<Object> response = new ApiResponse<>(false, e.getMessage(), null);
     return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
   }
@@ -36,7 +39,8 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception e) {
-    ApiResponse<Object> response = new ApiResponse<>(false, "Internal Server Error: " + e.getMessage(), null);
+    ApiResponse<Object> response =
+        new ApiResponse<>(false, "Internal Server Error: " + e.getMessage(), null);
     return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }

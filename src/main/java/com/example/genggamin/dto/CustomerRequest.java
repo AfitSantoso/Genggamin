@@ -20,5 +20,7 @@ public class CustomerRequest {
   private BigDecimal monthlyIncome;
   private String occupation;
   private String motherMaidenName;
+  private String accountNumber;
+  private String accountHolderName;
   private EmergencyContactRequest emergencyContact;
 }

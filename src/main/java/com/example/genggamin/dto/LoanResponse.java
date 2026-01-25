@@ -31,6 +31,7 @@ public class LoanResponse {
   private String reviewedBy;
   private String approvedBy;
   private String disbursedBy;
+  private Long customerId;
 
   public static LoanResponse fromEntity(Loan loan) {
     return LoanResponse.builder()
@@ -52,6 +53,7 @@ public class LoanResponse {
         .reviewedBy(loan.getReviewedBy())
         .approvedBy(loan.getApprovedBy())
         .disbursedBy(loan.getDisbursedBy())
+        .customerId(loan.getCustomer().getId())
         .build();
   }
 }

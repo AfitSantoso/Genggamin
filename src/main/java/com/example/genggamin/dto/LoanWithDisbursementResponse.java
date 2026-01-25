@@ -4,213 +4,212 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class LoanWithDisbursementResponse {
-    
-    // Loan fields
-    private Long id;
-    private Long customerId;
-    private Long plafondId;
-    private BigDecimal loanAmount;
-    private Long tenorMonth;
-    private BigDecimal interestRate;
-    private String purpose;
-    private String status;
-    private LocalDateTime submissionDate;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    
-    // Disbursement fields
-    private Long disbursementId;
-    private Long disbursedBy;
-    private BigDecimal disbursementAmount;
-    private LocalDateTime disbursementDate;
-    private String bankAccount;
-    private String disbursementStatus;
 
-    // Approval fields
-    private Long approvalId;
-    private Long approvedBy;
-    private String approvalStatus;
-    private String approvalNotes;
-    private LocalDateTime approvedAt;
+  // Loan fields
+  private Long id;
+  private Long customerId;
+  private Long plafondId;
+  private BigDecimal loanAmount;
+  private Long tenorMonth;
+  private BigDecimal interestRate;
+  private String purpose;
+  private String status;
+  private LocalDateTime submissionDate;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 
-    // Constructors
-    public LoanWithDisbursementResponse() {
-    }
+  // Disbursement fields
+  private Long disbursementId;
+  private Long disbursedBy;
+  private BigDecimal disbursementAmount;
+  private LocalDateTime disbursementDate;
+  private String bankAccount;
+  private String disbursementStatus;
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
+  // Approval fields
+  private Long approvalId;
+  private Long approvedBy;
+  private String approvalStatus;
+  private String approvalNotes;
+  private LocalDateTime approvedAt;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+  // Constructors
+  public LoanWithDisbursementResponse() {}
 
-    public Long getCustomerId() {
-        return customerId;
-    }
+  // Getters and Setters
+  public Long getId() {
+    return id;
+  }
 
-    public void setCustomerId(Long customerId) {
-        this.customerId = customerId;
-    }
+  public void setId(Long id) {
+    this.id = id;
+  }
 
-    public Long getPlafondId() {
-        return plafondId;
-    }
+  public Long getCustomerId() {
+    return customerId;
+  }
 
-    public void setPlafondId(Long plafondId) {
-        this.plafondId = plafondId;
-    }
+  public void setCustomerId(Long customerId) {
+    this.customerId = customerId;
+  }
 
-    public BigDecimal getLoanAmount() {
-        return loanAmount;
-    }
+  public Long getPlafondId() {
+    return plafondId;
+  }
 
-    public void setLoanAmount(BigDecimal loanAmount) {
-        this.loanAmount = loanAmount;
-    }
+  public void setPlafondId(Long plafondId) {
+    this.plafondId = plafondId;
+  }
 
-    public Long getTenorMonth() {
-        return tenorMonth;
-    }
+  public BigDecimal getLoanAmount() {
+    return loanAmount;
+  }
 
-    public void setTenorMonth(Long tenorMonth) {
-        this.tenorMonth = tenorMonth;
-    }
+  public void setLoanAmount(BigDecimal loanAmount) {
+    this.loanAmount = loanAmount;
+  }
 
-    public BigDecimal getInterestRate() {
-        return interestRate;
-    }
+  public Long getTenorMonth() {
+    return tenorMonth;
+  }
 
-    public void setInterestRate(BigDecimal interestRate) {
-        this.interestRate = interestRate;
-    }
+  public void setTenorMonth(Long tenorMonth) {
+    this.tenorMonth = tenorMonth;
+  }
 
-    public String getPurpose() {
-        return purpose;
-    }
+  public BigDecimal getInterestRate() {
+    return interestRate;
+  }
 
-    public void setPurpose(String purpose) {
-        this.purpose = purpose;
-    }
+  public void setInterestRate(BigDecimal interestRate) {
+    this.interestRate = interestRate;
+  }
 
-    public String getStatus() {
-        return status;
-    }
+  public String getPurpose() {
+    return purpose;
+  }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+  public void setPurpose(String purpose) {
+    this.purpose = purpose;
+  }
 
-    public LocalDateTime getSubmissionDate() {
-        return submissionDate;
-    }
+  public String getStatus() {
+    return status;
+  }
 
-    public void setSubmissionDate(LocalDateTime submissionDate) {
-        this.submissionDate = submissionDate;
-    }
+  public void setStatus(String status) {
+    this.status = status;
+  }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+  public LocalDateTime getSubmissionDate() {
+    return submissionDate;
+  }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+  public void setSubmissionDate(LocalDateTime submissionDate) {
+    this.submissionDate = submissionDate;
+  }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
+  public LocalDateTime getCreatedAt() {
+    return createdAt;
+  }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+  public void setCreatedAt(LocalDateTime createdAt) {
+    this.createdAt = createdAt;
+  }
 
-    public Long getDisbursementId() {
-        return disbursementId;
-    }
+  public LocalDateTime getUpdatedAt() {
+    return updatedAt;
+  }
 
-    public void setDisbursementId(Long disbursementId) {
-        this.disbursementId = disbursementId;
-    }
+  public void setUpdatedAt(LocalDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+  }
 
-    public Long getDisbursedBy() {
-        return disbursedBy;
-    }
+  public Long getDisbursementId() {
+    return disbursementId;
+  }
 
-    public void setDisbursedBy(Long disbursedBy) {
-        this.disbursedBy = disbursedBy;
-    }
+  public void setDisbursementId(Long disbursementId) {
+    this.disbursementId = disbursementId;
+  }
 
-    public BigDecimal getDisbursementAmount() {
-        return disbursementAmount;
-    }
+  public Long getDisbursedBy() {
+    return disbursedBy;
+  }
 
-    public void setDisbursementAmount(BigDecimal disbursementAmount) {
-        this.disbursementAmount = disbursementAmount;
-    }
+  public void setDisbursedBy(Long disbursedBy) {
+    this.disbursedBy = disbursedBy;
+  }
 
-    public LocalDateTime getDisbursementDate() {
-        return disbursementDate;
-    }
+  public BigDecimal getDisbursementAmount() {
+    return disbursementAmount;
+  }
 
-    public void setDisbursementDate(LocalDateTime disbursementDate) {
-        this.disbursementDate = disbursementDate;
-    }
+  public void setDisbursementAmount(BigDecimal disbursementAmount) {
+    this.disbursementAmount = disbursementAmount;
+  }
 
-    public String getBankAccount() {
-        return bankAccount;
-    }
+  public LocalDateTime getDisbursementDate() {
+    return disbursementDate;
+  }
 
-    public void setBankAccount(String bankAccount) {
-        this.bankAccount = bankAccount;
-    }
+  public void setDisbursementDate(LocalDateTime disbursementDate) {
+    this.disbursementDate = disbursementDate;
+  }
 
-    public String getDisbursementStatus() {
-        return disbursementStatus;
-    }
+  public String getBankAccount() {
+    return bankAccount;
+  }
 
-    public void setDisbursementStatus(String disbursementStatus) {
-        this.disbursementStatus = disbursementStatus;
-    }
+  public void setBankAccount(String bankAccount) {
+    this.bankAccount = bankAccount;
+  }
 
-    public Long getApprovalId() {
-        return approvalId;
-    }
+  public String getDisbursementStatus() {
+    return disbursementStatus;
+  }
 
-    public void setApprovalId(Long approvalId) {
-        this.approvalId = approvalId;
-    }
+  public void setDisbursementStatus(String disbursementStatus) {
+    this.disbursementStatus = disbursementStatus;
+  }
 
-    public Long getApprovedBy() {
-        return approvedBy;
-    }
+  public Long getApprovalId() {
+    return approvalId;
+  }
 
-    public void setApprovedBy(Long approvedBy) {
-        this.approvedBy = approvedBy;
-    }
+  public void setApprovalId(Long approvalId) {
+    this.approvalId = approvalId;
+  }
 
-    public String getApprovalStatus() {
-        return approvalStatus;
-    }
+  public Long getApprovedBy() {
+    return approvedBy;
+  }
 
-    public void setApprovalStatus(String approvalStatus) {
-        this.approvalStatus = approvalStatus;
-    }
+  public void setApprovedBy(Long approvedBy) {
+    this.approvedBy = approvedBy;
+  }
 
-    public String getApprovalNotes() {
-        return approvalNotes;
-    }
+  public String getApprovalStatus() {
+    return approvalStatus;
+  }
 
-    public void setApprovalNotes(String approvalNotes) {
-        this.approvalNotes = approvalNotes;
-    }
+  public void setApprovalStatus(String approvalStatus) {
+    this.approvalStatus = approvalStatus;
+  }
 
-    public LocalDateTime getApprovedAt() {
-        return approvedAt;
-    }
+  public String getApprovalNotes() {
+    return approvalNotes;
+  }
 
-    public void setApprovedAt(LocalDateTime approvedAt) {
-        this.approvedAt = approvedAt;
-    }
+  public void setApprovalNotes(String approvalNotes) {
+    this.approvalNotes = approvalNotes;
+  }
+
+  public LocalDateTime getApprovedAt() {
+    return approvedAt;
+  }
+
+  public void setApprovedAt(LocalDateTime approvedAt) {
+    this.approvedAt = approvedAt;
+  }
 }
