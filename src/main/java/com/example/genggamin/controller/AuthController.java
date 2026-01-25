@@ -116,13 +116,15 @@ public class AuthController {
   @PostMapping("/forgot-password")
   public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
     try {
-      passwordResetService.processForgotPassword(request.getEmail());
+      String token = passwordResetService.processForgotPassword(request.getEmail());
       return ResponseEntity.ok(
           java.util.Map.of(
               "success",
               true,
               "message",
-              "Link reset password telah dikirim ke email Anda. Silakan cek inbox atau spam folder."));
+              "Link reset password telah dikirim ke email Anda. Silakan cek inbox atau spam folder.",
+              "token",
+              token));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest()
           .body(java.util.Map.of("success", false, "message", e.getMessage()));

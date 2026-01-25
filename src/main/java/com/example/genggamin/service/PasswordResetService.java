@@ -42,7 +42,7 @@ public class PasswordResetService {
    * @param email Email user yang lupa password
    */
   @Transactional
-  public void processForgotPassword(String email) {
+  public String processForgotPassword(String email) {
     // Cari user berdasarkan email
     User user =
         userRepository
@@ -82,6 +82,7 @@ public class PasswordResetService {
       log.error("Failed to send password reset email for user: {}. Error: {}", user.getUsername(), e.getMessage());
       // throw new RuntimeException("Gagal mengirim email reset password. Silakan coba lagi.", e);
     }
+    return token;
   }
 
   /**

@@ -206,4 +206,26 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.token").value(testToken))
         .andExpect(jsonPath("$.username").value("testuser"));
   }
+
+  @Test
+  void forgotPassword_ShouldReturnSuccessAndToken() throws Exception {
+    // Arrange
+    String email = "test@example.com";
+    String token = "reset-token-123";
+    com.example.genggamin.dto.ForgotPasswordRequest request = new com.example.genggamin.dto.ForgotPasswordRequest();
+    request.setEmail(email);
+
+    when(passwordResetService.processForgotPassword(email)).thenReturn(token);
+
+    // Act & Assert
+    mockMvc
+        .perform(
+            post("/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").exists())
+        .andExpect(jsonPath("$.token").value(token));
+  }
 }
