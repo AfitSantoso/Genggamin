@@ -42,7 +42,7 @@ public class AuthController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+  public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest req) {
     try {
       User user = userService.authenticate(req);
       LoginResponse res = userService.Login(req);
@@ -53,20 +53,20 @@ public class AuthController {
               .collect(java.util.stream.Collectors.toSet());
       String token = jwtUtil.generateToken(user.getUsername(), roles);
       res.setToken(token);
-      return ResponseEntity.ok(res);
+      return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", res));
     } catch (RuntimeException e) {
-      return ResponseEntity.status(401).body(java.util.Map.of("message", e.getMessage()));
+      return ResponseEntity.status(401).body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 
   @PostMapping("/register")
-  public ResponseEntity<?> register(@RequestBody CreateUserRequest req) {
+  public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> register(@RequestBody CreateUserRequest req) {
     try {
       User u = userService.register(req);
       return ResponseEntity.status(201)
-          .body(java.util.Map.of("message", "User created", "id", u.getId()));
+          .body(new ApiResponse<>(true, "User created", java.util.Map.of("id", u.getId())));
     } catch (RuntimeException e) {
-      return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 
@@ -84,7 +84,7 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<?> logout(
+  public ResponseEntity<ApiResponse<Void>> logout(
       @RequestHeader(value = "Authorization", required = false) String authHeader) {
     try {
       // Extract token from Authorization header
@@ -98,36 +98,31 @@ public class AuthController {
         tokenBlacklistService.blacklistToken(token, expirationTime);
 
         return ResponseEntity.ok(
-            java.util.Map.of(
-                "success", true, "message", "Logout successful. Token has been invalidated."));
+            new ApiResponse<>(true, "Logout successful. Token has been invalidated.", null));
       } else {
         return ResponseEntity.badRequest()
             .body(
-                java.util.Map.of(
-                    "success", false, "message", "Authorization header is missing or invalid"));
+                new ApiResponse<>(false, "Authorization header is missing or invalid", null));
       }
     } catch (Exception e) {
       return ResponseEntity.status(500)
-          .body(java.util.Map.of("success", false, "message", "Logout failed: " + e.getMessage()));
+          .body(new ApiResponse<>(false, "Logout failed: " + e.getMessage(), null));
     }
   }
 
   /** Endpoint untuk forgot password User request reset password dengan email */
   @PostMapping("/forgot-password")
-  public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+  public ResponseEntity<ApiResponse<java.util.Map<String, String>>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
     try {
       String token = passwordResetService.processForgotPassword(request.getEmail());
       return ResponseEntity.ok(
-          java.util.Map.of(
-              "success",
+          new ApiResponse<>(
               true,
-              "message",
               "Link reset password telah dikirim ke email Anda. Silakan cek inbox atau spam folder.",
-              "token",
-              token));
+              java.util.Map.of("token", token)));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest()
-          .body(java.util.Map.of("success", false, "message", e.getMessage()));
+          .body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 
@@ -135,19 +130,22 @@ public class AuthController {
    * Endpoint untuk reset password dengan token User menggunakan token dari email untuk set password
    * baru
    */
+  /**
+   * Endpoint untuk reset password dengan token User menggunakan token dari email untuk set password
+   * baru
+   */
   @PostMapping("/reset-password")
-  public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+  public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
     try {
       passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
       return ResponseEntity.ok(
-          java.util.Map.of(
-              "success",
+          new ApiResponse<>(
               true,
-              "message",
-              "Password berhasil direset. Silakan login dengan password baru Anda."));
+              "Password berhasil direset. Silakan login dengan password baru Anda.",
+              null));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest()
-          .body(java.util.Map.of("success", false, "message", e.getMessage()));
+          .body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 
