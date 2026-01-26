@@ -29,6 +29,9 @@ public class User {
   @Column(name = "full_name", length = 150)
   private String fullName;
 
+  @Column(name = "fcm_token", length = 1000)
+  private String fcmToken;
+
   @Column(name = "password_hash", nullable = false)
   private String password;
 
