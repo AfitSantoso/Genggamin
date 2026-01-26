@@ -7,6 +7,8 @@ import com.example.genggamin.entity.User;
 import com.example.genggamin.enums.NotificationChannel;
 import com.example.genggamin.enums.NotificationType;
 import com.example.genggamin.repository.NotificationRepository;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.Message;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,26 @@ public class NotificationService {
 
   // Simulate Push Notification Service (Firebase/OneSignal)
   private void sendPushNotification(User user, String title, String message) {
-    log.info("[PUSH] To UserID: {}, Title: {}, Message: {}", user.getId(), title, message);
+    if (user.getFcmToken() == null || user.getFcmToken().isEmpty()) {
+      log.warn("User {} has no FCM token, skipping push notification", user.getUsername());
+      return;
+    }
+
+    try {
+      com.google.firebase.messaging.Notification notification =
+          com.google.firebase.messaging.Notification.builder()
+              .setTitle(title)
+              .setBody(message)
+              .build();
+
+      Message msg =
+          Message.builder().setToken(user.getFcmToken()).setNotification(notification).build();
+
+      String response = FirebaseMessaging.getInstance().send(msg);
+      log.info("[PUSH] Sent to UserID: {}, Response: {}", user.getId(), response);
+    } catch (Exception e) {
+      log.error("Error sending push notification: {}", e.getMessage());
+    }
   }
 
   /**

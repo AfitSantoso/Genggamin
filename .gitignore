@@ -46,3 +46,5 @@ postman/
 uploads/
 *.md
 *.sql
+/src/main/resources/firebase-service-account.json
+/src/main/resources/client_secret_196871791222-f0thn7i0sblkes63jrj3l3m6lbfq4g0b.apps.googleusercontent.com.json

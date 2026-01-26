@@ -98,6 +98,12 @@ public class UserService {
       throw new RuntimeException("User sudah tidak aktif");
     }
 
+    // Update FCM Token if present
+    if (req.getFcmToken() != null && !req.getFcmToken().isEmpty()) {
+      user.setFcmToken(req.getFcmToken());
+      userRepository.save(user);
+    }
+
     LoginResponse res = new LoginResponse();
     res.setId(cachedUser.getId());
     res.setUsername(cachedUser.getUsername());
