@@ -13,6 +13,8 @@ import com.example.genggamin.security.JwtUtil;
 import com.example.genggamin.service.PasswordResetService;
 import com.example.genggamin.service.TokenBlacklistService;
 import com.example.genggamin.service.UserService;
+import com.example.genggamin.service.GoogleAuthService;
+import com.example.genggamin.dto.GoogleLoginRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,16 +31,19 @@ public class AuthController {
   private final JwtUtil jwtUtil;
   private final TokenBlacklistService tokenBlacklistService;
   private final PasswordResetService passwordResetService;
+  private final GoogleAuthService googleAuthService;
 
   public AuthController(
       UserService userService,
       JwtUtil jwtUtil,
       TokenBlacklistService tokenBlacklistService,
-      PasswordResetService passwordResetService) {
+      PasswordResetService passwordResetService,
+      GoogleAuthService googleAuthService) {
     this.userService = userService;
     this.jwtUtil = jwtUtil;
     this.tokenBlacklistService = tokenBlacklistService;
     this.passwordResetService = passwordResetService;
+    this.googleAuthService = googleAuthService;
   }
 
   @PostMapping("/login")
@@ -56,6 +61,16 @@ public class AuthController {
       return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", res));
     } catch (RuntimeException e) {
       return ResponseEntity.status(401).body(new ApiResponse<>(false, e.getMessage(), null));
+    }
+  }
+
+  @PostMapping("/google")
+  public ResponseEntity<ApiResponse<LoginResponse>> googleLogin(@RequestBody GoogleLoginRequest req) {
+    try {
+      LoginResponse res = googleAuthService.loginWithGoogle(req.getIdToken(), req.getFcmToken());
+      return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", res));
+    } catch (Exception e) {
+      return ResponseEntity.status(401).body(new ApiResponse<>(false, "Google login failed: " + e.getMessage(), null));
     }
   }
 

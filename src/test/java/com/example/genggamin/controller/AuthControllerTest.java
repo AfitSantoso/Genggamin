@@ -16,6 +16,8 @@ import com.example.genggamin.security.JwtUtil;
 import com.example.genggamin.service.PasswordResetService;
 import com.example.genggamin.service.TokenBlacklistService;
 import com.example.genggamin.service.UserService;
+import com.example.genggamin.service.GoogleAuthService;
+import com.example.genggamin.dto.GoogleLoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,6 +47,8 @@ class AuthControllerTest {
   @MockBean private TokenBlacklistService tokenBlacklistService;
 
   @MockBean private PasswordResetService passwordResetService;
+
+  @MockBean private GoogleAuthService googleAuthService;
 
   private User testUser;
   private LoginRequest loginRequest;
@@ -227,5 +231,46 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.message").exists())
         .andExpect(jsonPath("$.token").value(token));
+  }
+
+  @Test
+  void googleLogin_WithValidToken_ShouldReturnSuccess() throws Exception {
+    // Arrange
+    String idToken = "valid-google-id-token";
+    GoogleLoginRequest googleRequest = new GoogleLoginRequest();
+    googleRequest.setIdToken(idToken);
+
+    when(googleAuthService.loginWithGoogle(idToken)).thenReturn(loginResponse);
+
+    // Act & Assert
+    mockMvc
+        .perform(
+            post("/auth/google")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(googleRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.username").value("testuser"))
+        .andExpect(jsonPath("$.data.token").exists());
+  }
+
+  @Test
+  void googleLogin_WithInvalidToken_ShouldReturnUnauthorized() throws Exception {
+    // Arrange
+    String idToken = "invalid-token";
+    GoogleLoginRequest googleRequest = new GoogleLoginRequest();
+    googleRequest.setIdToken(idToken);
+
+    when(googleAuthService.loginWithGoogle(idToken)).thenThrow(new RuntimeException("Invalid ID token."));
+
+    // Act & Assert
+    mockMvc
+        .perform(
+            post("/auth/google")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(googleRequest)))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.success").value(false))
+        .andExpect(jsonPath("$.message").value("Google login failed: Invalid ID token."));
   }
 }
