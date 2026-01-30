@@ -148,18 +148,24 @@ public class CustomerService {
     String fileBaseName = sanitizedFullName + "-" + nik;
 
     if (fileKtp != null && !fileKtp.isEmpty()) {
+      // Delete old file if exists
+      fileStorageService.deleteFile(customer.getKtpImagePath());
       String ktpPath =
           fileStorageService.storeFile(fileKtp, fileBaseName + "_" + DocumentType.KTP.name());
       customer.setKtpImagePath(ktpPath);
     }
 
     if (fileSelfie != null && !fileSelfie.isEmpty()) {
+      // Delete old file if exists
+      fileStorageService.deleteFile(customer.getSelfieImagePath());
       String selfiePath =
           fileStorageService.storeFile(fileSelfie, fileBaseName + "_" + DocumentType.SELFIE.name());
       customer.setSelfieImagePath(selfiePath);
     }
 
     if (filePayslip != null && !filePayslip.isEmpty()) {
+      // Delete old file if exists
+      fileStorageService.deleteFile(customer.getPayslipImagePath());
       String payslipPath =
           fileStorageService.storeFile(
               filePayslip, fileBaseName + "_" + DocumentType.PAYSLIP.name());

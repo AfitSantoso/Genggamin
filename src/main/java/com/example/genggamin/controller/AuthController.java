@@ -58,6 +58,7 @@ public class AuthController {
               .collect(java.util.stream.Collectors.toSet());
       String token = jwtUtil.generateToken(user.getUsername(), roles);
       res.setToken(token);
+      res.setExpiresAt(jwtUtil.getExpirationTimeFromToken(token));
       return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", res));
     } catch (RuntimeException e) {
       return ResponseEntity.status(401).body(new ApiResponse<>(false, e.getMessage(), null));

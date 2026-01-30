@@ -9,4 +9,5 @@ public class LoginResponse {
   private String email;
   private Boolean isActive;
   private String token;
+  private Long expiresAt;
 }

@@ -56,4 +56,19 @@ public class FileStorageService {
           "Could not store file " + targetFilename + ". Please try again!", ex);
     }
   }
+
+  public void deleteFile(String filePath) {
+    if (filePath == null || filePath.isEmpty()) {
+      return;
+    }
+    try {
+      Path path = Paths.get(filePath);
+      Files.deleteIfExists(path);
+    } catch (IOException ex) {
+      // Log warning but don't stop the process? Or throw?
+      // Since it's cleanup, maybe just existing silently or logging is fine.
+      // For now let's just print stack trace or ignore strictly to avoid blocking update
+      System.err.println("Could not delete file: " + filePath + ". Error: " + ex.getMessage());
+    }
+  }
 }

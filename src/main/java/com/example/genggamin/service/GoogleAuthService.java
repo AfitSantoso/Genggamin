@@ -77,6 +77,7 @@ public class GoogleAuthService {
             response.setEmail(user.getEmail());
             response.setIsActive(user.getIsActive());
             response.setToken(jwt);
+            response.setExpiresAt(jwtUtil.getExpirationTimeFromToken(jwt));
             return response;
 
         } else {
