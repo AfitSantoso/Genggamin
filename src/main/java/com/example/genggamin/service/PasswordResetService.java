@@ -2,6 +2,7 @@ package com.example.genggamin.service;
 
 import com.example.genggamin.entity.PasswordResetToken;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.enums.NotificationType;
 import com.example.genggamin.repository.PasswordResetTokenRepository;
 import com.example.genggamin.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -24,16 +25,19 @@ public class PasswordResetService {
   private final PasswordResetTokenRepository tokenRepository;
   private final EmailService emailService;
   private final PasswordEncoder passwordEncoder;
+  private final NotificationService notificationService;
 
   public PasswordResetService(
       UserRepository userRepository,
       PasswordResetTokenRepository tokenRepository,
       EmailService emailService,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      NotificationService notificationService) {
     this.userRepository = userRepository;
     this.tokenRepository = tokenRepository;
     this.emailService = emailService;
     this.passwordEncoder = passwordEncoder;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -69,7 +73,7 @@ public class PasswordResetService {
     resetToken.setExpiredAt(expiredAt);
     resetToken.setUsed(false);
     tokenRepository.save(resetToken);
-    
+
     // Log token for debugging/development purposes (So we can test without real email)
     log.info("GENERATED RESET TOKEN for user {}: {}", user.getUsername(), token);
 
@@ -78,10 +82,19 @@ public class PasswordResetService {
       emailService.sendPasswordResetEmail(user.getEmail(), token, user.getUsername());
       log.info("Password reset token generated and email sent for user: {}", user.getUsername());
     } catch (Exception e) {
-      // In development/testing, email sending might fail. We log the error but don't fail the request.
-      log.error("Failed to send password reset email for user: {}. Error: {}", user.getUsername(), e.getMessage());
+      // In development/testing, email sending might fail. We log the error but don't fail the
+      // request.
+      log.error(
+          "Failed to send password reset email for user: {}. Error: {}",
+          user.getUsername(),
+          e.getMessage());
       // throw new RuntimeException("Gagal mengirim email reset password. Silakan coba lagi.", e);
     }
+
+    // Send FORGOT_PASSWORD notification (primarily EMAIL-based, but triggers IN_APP based on
+    // channel config)
+    notificationService.sendNotification(user, NotificationType.FORGOT_PASSWORD, null);
+
     return token;
   }
 

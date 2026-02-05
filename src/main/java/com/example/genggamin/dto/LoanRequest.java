@@ -15,4 +15,6 @@ public class LoanRequest {
   private BigDecimal amount;
   private Long tenureMonths;
   private String purpose;
+  private BigDecimal latitude;
+  private BigDecimal longitude;
 }

@@ -8,16 +8,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.genggamin.dto.GoogleLoginRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
 import com.example.genggamin.entity.Role;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.security.JwtUtil;
+import com.example.genggamin.service.GoogleAuthService;
 import com.example.genggamin.service.PasswordResetService;
 import com.example.genggamin.service.TokenBlacklistService;
 import com.example.genggamin.service.UserService;
-import com.example.genggamin.service.GoogleAuthService;
-import com.example.genggamin.dto.GoogleLoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashSet;
 import java.util.Set;
@@ -216,7 +216,8 @@ class AuthControllerTest {
     // Arrange
     String email = "test@example.com";
     String token = "reset-token-123";
-    com.example.genggamin.dto.ForgotPasswordRequest request = new com.example.genggamin.dto.ForgotPasswordRequest();
+    com.example.genggamin.dto.ForgotPasswordRequest request =
+        new com.example.genggamin.dto.ForgotPasswordRequest();
     request.setEmail(email);
 
     when(passwordResetService.processForgotPassword(email)).thenReturn(token);
@@ -261,7 +262,8 @@ class AuthControllerTest {
     GoogleLoginRequest googleRequest = new GoogleLoginRequest();
     googleRequest.setIdToken(idToken);
 
-    when(googleAuthService.loginWithGoogle(idToken)).thenThrow(new RuntimeException("Invalid ID token."));
+    when(googleAuthService.loginWithGoogle(idToken))
+        .thenThrow(new RuntimeException("Invalid ID token."));
 
     // Act & Assert
     mockMvc

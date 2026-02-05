@@ -109,6 +109,8 @@ public class NotificationService {
       case REGISTER:
       case FORGOT_PASSWORD:
         channels.add(NotificationChannel.EMAIL);
+        channels.add(
+            NotificationChannel.IN_APP); // Also save to database for frontend/mobile display
         break;
       case LOAN_SUBMISSION: // Submit Pengajuan -> InApp only
       case LOAN_REJECTED: // Pengajuan Ditolak -> Email + InApp
@@ -173,23 +175,25 @@ public class NotificationService {
   }
 
   private String generateMessage(NotificationType type, Loan loan) {
-    // Simple templates
+    // Template sederhana
     String loanStr = (loan != null) ? " (ID: " + loan.getId() + ")" : "";
     return switch (type) {
-      case REGISTER -> "Please confirm your email to activate account.";
-      case FORGOT_PASSWORD -> "Click the link in email to reset password.";
+      case REGISTER -> "Silakan konfirmasi email Anda untuk mengaktifkan akun.";
+      case FORGOT_PASSWORD -> "Klik tautan di email untuk mengatur ulang kata sandi Anda.";
       case LOAN_SUBMISSION ->
-          "Your loan application has been received and is under review." + loanStr;
-      case LOAN_APPROVED -> "Good news! Your loan application has been approved." + loanStr;
+          "Permohonan pinjaman Anda telah diterima dan sedang dalam proses peninjauan." + loanStr;
+      case LOAN_APPROVED -> "Kabar baik! Permohonan pinjaman Anda telah disetujui." + loanStr;
       case LOAN_REJECTED ->
-          "We regret to inform you that your loan application was not approved." + loanStr;
-      case LOAN_DISBURSED -> "The funds have been sent to your registered bank account." + loanStr;
-      case LOAN_NEW -> "A new loan application needs review." + loanStr;
-      case REVIEW_COMPLETED -> "You have completed the review." + loanStr;
-      case READY_FOR_APPROVAL -> "A loan application is ready for your approval." + loanStr;
-      case APPROVAL_COMPLETED -> "You have processed the approval." + loanStr;
-      case READY_FOR_DISBURSEMENT -> "A loan is approved and ready for disbursement." + loanStr;
-      case DISBURSEMENT_COMPLETED -> "Disbursement recorded successfully." + loanStr;
+          "Mohon maaf, permohonan pinjaman Anda belum dapat disetujui saat ini." + loanStr;
+      case LOAN_DISBURSED ->
+          "Dana telah dikirimkan ke rekening bank yang Anda daftarkan." + loanStr;
+      case LOAN_NEW -> "Ada permohonan pinjaman baru yang perlu ditinjau." + loanStr;
+      case REVIEW_COMPLETED -> "Anda telah menyelesaikan proses peninjauan." + loanStr;
+      case READY_FOR_APPROVAL ->
+          "Aplikasi pinjaman siap untuk mendapatkan persetujuan Anda." + loanStr;
+      case APPROVAL_COMPLETED -> "Anda telah menyelesaikan proses persetujuan." + loanStr;
+      case READY_FOR_DISBURSEMENT -> "Pinjaman telah disetujui dan siap untuk dicairkan." + loanStr;
+      case DISBURSEMENT_COMPLETED -> "Pencairan dana telah berhasil dicatat." + loanStr;
     };
   }
 

@@ -21,7 +21,7 @@ public class PlafondRequest {
   /** Validasi business rules */
   public void validate() {
     if (title == null || title.trim().isEmpty()) {
-       throw new IllegalArgumentException("Title cannot be empty");
+      throw new IllegalArgumentException("Title cannot be empty");
     }
     if (minIncome == null || minIncome.compareTo(BigDecimal.ZERO) <= 0) {
       throw new IllegalArgumentException("Min income must be greater than 0");

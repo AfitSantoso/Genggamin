@@ -7,6 +7,7 @@ import com.example.genggamin.dto.UpdateUserRequest;
 import com.example.genggamin.dto.UserResponse;
 import com.example.genggamin.entity.Role;
 import com.example.genggamin.entity.User;
+import com.example.genggamin.enums.NotificationType;
 import com.example.genggamin.repository.RoleRepository;
 import com.example.genggamin.repository.UserRepository;
 import java.util.List;
@@ -24,16 +25,19 @@ public class UserService {
   private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
   private final EmailService emailService;
+  private final NotificationService notificationService;
 
   public UserService(
       UserRepository userRepository,
       RoleRepository roleRepository,
       PasswordEncoder passwordEncoder,
-      EmailService emailService) {
+      EmailService emailService,
+      NotificationService notificationService) {
     this.userRepository = userRepository;
     this.roleRepository = roleRepository;
     this.passwordEncoder = passwordEncoder;
     this.emailService = emailService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -188,6 +192,9 @@ public class UserService {
     User savedUser = userRepository.saveAndFlush(user);
 
     emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), savedUser.getUsername());
+
+    // Send REGISTER notification (IN_APP for confirmation)
+    notificationService.sendNotification(savedUser, NotificationType.REGISTER, null);
 
     return savedUser;
   }

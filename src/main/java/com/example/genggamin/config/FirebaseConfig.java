@@ -21,23 +21,24 @@ public class FirebaseConfig {
   public void initialize() {
     try {
       if (FirebaseApp.getApps().isEmpty()) {
-          InputStream serviceAccount = null;
+        InputStream serviceAccount = null;
+        try {
+          // Try to load from classpath
+          serviceAccount = new ClassPathResource(firebaseConfigPath).getInputStream();
+        } catch (Exception e) {
+          // Try to load from file system
           try {
-             // Try to load from classpath
-             serviceAccount = new ClassPathResource(firebaseConfigPath).getInputStream();
-          } catch (Exception e) {
-             // Try to load from file system
-             try {
-                serviceAccount = new FileInputStream(firebaseConfigPath);
-             } catch (Exception ex) {
-                System.out.println("Firebase config file not found. Push notifications will not work.");
-                return;
-             }
+            serviceAccount = new FileInputStream(firebaseConfigPath);
+          } catch (Exception ex) {
+            System.out.println("Firebase config file not found. Push notifications will not work.");
+            return;
           }
+        }
 
-        FirebaseOptions options = FirebaseOptions.builder()
-            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-            .build();
+        FirebaseOptions options =
+            FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .build();
 
         FirebaseApp.initializeApp(options);
         System.out.println("Firebase application has been initialized");

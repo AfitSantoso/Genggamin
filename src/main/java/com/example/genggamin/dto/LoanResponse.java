@@ -32,6 +32,8 @@ public class LoanResponse {
   private String approvedBy;
   private String disbursedBy;
   private Long customerId;
+  private BigDecimal latitude;
+  private BigDecimal longitude;
 
   public static LoanResponse fromEntity(Loan loan) {
     return LoanResponse.builder()
@@ -54,6 +56,8 @@ public class LoanResponse {
         .approvedBy(loan.getApprovedBy())
         .disbursedBy(loan.getDisbursedBy())
         .customerId(loan.getCustomer().getId())
+        .latitude(loan.getLatitude())
+        .longitude(loan.getLongitude())
         .build();
   }
 }
