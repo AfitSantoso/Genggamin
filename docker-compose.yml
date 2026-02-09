@@ -61,7 +61,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${DOCKER_IMAGE_NAME:-afitsantoso/genggamin:latest}
+    image: ${DOCKER_IMAGE_NAME:-afit7/genggamin:latest}
     container_name: genggamin-app
     ports:
       - "8080:8080"
