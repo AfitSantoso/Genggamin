@@ -8,6 +8,7 @@ import com.example.genggamin.dto.LoanWithApprovalResponse;
 import com.example.genggamin.dto.LoanWithDisbursementResponse;
 import com.example.genggamin.dto.LoanWithReviewResponse;
 import com.example.genggamin.entity.Customer;
+import com.example.genggamin.entity.CustomerLimit;
 import com.example.genggamin.entity.Loan;
 import com.example.genggamin.entity.Loan.LoanStatus;
 import com.example.genggamin.entity.LoanApproval;
@@ -16,6 +17,7 @@ import com.example.genggamin.entity.LoanReview;
 import com.example.genggamin.entity.Plafond;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.enums.NotificationType;
+import com.example.genggamin.repository.CustomerLimitRepository;
 import com.example.genggamin.repository.CustomerRepository;
 import com.example.genggamin.repository.LoanApprovalRepository;
 import com.example.genggamin.repository.LoanDisbursementRepository;
@@ -23,9 +25,6 @@ import com.example.genggamin.repository.LoanRepository;
 import com.example.genggamin.repository.LoanReviewRepository;
 import com.example.genggamin.repository.PlafondRepository;
 import com.example.genggamin.repository.UserRepository;
-import com.example.genggamin.entity.CustomerLimit;
-import com.example.genggamin.repository.CustomerLimitRepository;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -153,7 +152,7 @@ public class LoanService {
     if (customerLimit.getId() == null) {
       customerLimitRepository.saveAndFlush(customerLimit);
     }
-  
+
     // Call Stored Procedure to create loan and update limit atomically
     try {
       loanRepository.createLoanWithLimitCheck(
@@ -162,7 +161,9 @@ public class LoanService {
           request.getAmount(),
           request.getTenureMonths(),
           plafond.getInterestRate(),
-          request.getPurpose());
+          request.getPurpose(),
+          request.getLatitude(),
+          request.getLongitude());
     } catch (Exception e) {
       // Extract specific error message from Stored Procedure
       String errorMessage = e.getMessage();
@@ -181,7 +182,9 @@ public class LoanService {
     }
 
     // Fetch the newly created loan
-    Loan savedLoan = loanRepository.findLatestLoanByCustomerId(customer.getId())
+    Loan savedLoan =
+        loanRepository
+            .findLatestLoanByCustomerId(customer.getId())
             .orElseThrow(() -> new RuntimeException("Failed to retrieve created loan"));
 
     // Notify Customer
@@ -348,22 +351,26 @@ public class LoanService {
       for (User bm : branchManagers) {
         notificationService.sendNotification(bm, NotificationType.READY_FOR_APPROVAL, savedLoan);
       }
+      // Notify the Marketing user who completed the review
+      notificationService.sendNotification(user, NotificationType.REVIEW_COMPLETED, savedLoan);
     } else if (newLoanStatus == LoanStatus.REJECTED) {
       if (customerUser != null) {
         notificationService.sendNotification(
             customerUser, NotificationType.LOAN_REJECTED, savedLoan);
       }
+      // Notify the Marketing user who completed the review
+      notificationService.sendNotification(user, NotificationType.REVIEW_COMPLETED, savedLoan);
     }
 
     // Send email if rejected
     if (newLoanStatus == LoanStatus.REJECTED) {
       // Restore Limit if Rejected
-       CustomerLimit limit =
+      CustomerLimit limit =
           customerLimitRepository
               .findByCustomer_IdAndPlafond_Id(
                   savedLoan.getCustomer().getId(), savedLoan.getPlafondId())
               .orElseThrow(() -> new RuntimeException("Customer limit not found"));
-      
+
       limit.setAvailableLimit(limit.getAvailableLimit().add(savedLoan.getAmount()));
       customerLimitRepository.save(limit);
 
@@ -478,14 +485,16 @@ public class LoanService {
         notificationService.sendNotification(
             bo, NotificationType.READY_FOR_DISBURSEMENT, savedLoan);
       }
+      // Notify the Branch Manager who completed the approval
+      notificationService.sendNotification(user, NotificationType.APPROVAL_COMPLETED, savedLoan);
     } else if (newLoanStatus == LoanStatus.REJECTED) {
       // Restore Limit if Rejected
-       CustomerLimit limit =
+      CustomerLimit limit =
           customerLimitRepository
               .findByCustomer_IdAndPlafond_Id(
                   savedLoan.getCustomer().getId(), savedLoan.getPlafondId())
               .orElseThrow(() -> new RuntimeException("Customer limit not found"));
-      
+
       limit.setAvailableLimit(limit.getAvailableLimit().add(savedLoan.getAmount()));
       customerLimitRepository.save(limit);
 
@@ -493,6 +502,8 @@ public class LoanService {
         notificationService.sendNotification(
             customerUser, NotificationType.LOAN_REJECTED, savedLoan);
       }
+      // Notify the Branch Manager who completed the approval
+      notificationService.sendNotification(user, NotificationType.APPROVAL_COMPLETED, savedLoan);
     }
 
     // Send email
@@ -604,8 +615,8 @@ public class LoanService {
     customerRepository.save(customer);
 
     // Send email
+    User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
     try {
-      User customerUser = userRepository.findById(savedLoan.getCustomer().getUserId()).orElse(null);
       if (customerUser != null) {
         emailService.sendLoanDisbursedEmail(
             customerUser.getEmail(),
@@ -617,6 +628,15 @@ public class LoanService {
     } catch (Exception e) {
       System.err.println("Failed to send disbursement email: " + e.getMessage());
     }
+
+    // Notifications
+    // Notify Customer that loan has been disbursed
+    if (customerUser != null) {
+      notificationService.sendNotification(
+          customerUser, NotificationType.LOAN_DISBURSED, savedLoan);
+    }
+    // Notify the Backoffice user who completed the disbursement
+    notificationService.sendNotification(user, NotificationType.DISBURSEMENT_COMPLETED, savedLoan);
 
     return LoanResponse.fromEntity(savedLoan);
   }

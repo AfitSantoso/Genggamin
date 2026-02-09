@@ -175,7 +175,7 @@ public class PlafondController {
 
   /** Create new plafond Only accessible by ADMIN */
   @PostMapping
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<ApiResponse<PlafondResponse>> createPlafond(
       @RequestBody PlafondRequest request) {
     try {
@@ -213,7 +213,7 @@ public class PlafondController {
 
   /** Update existing plafond Only accessible by ADMIN */
   @PutMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<ApiResponse<PlafondResponse>> updatePlafond(
       @PathVariable Long id, @RequestBody PlafondRequest request) {
     try {
@@ -250,7 +250,7 @@ public class PlafondController {
 
   /** Soft delete plafond Only accessible by ADMIN */
   @DeleteMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<ApiResponse<Void>> deletePlafond(
       @PathVariable Long id, Authentication authentication) {
     try {
@@ -276,7 +276,7 @@ public class PlafondController {
 
   /** Toggle plafond active status Only accessible by ADMIN */
   @PatchMapping("/{id}/toggle-status")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<ApiResponse<PlafondResponse>> toggleActiveStatus(@PathVariable Long id) {
     try {
       PlafondResponse plafond = plafondService.toggleActiveStatus(id);
@@ -305,7 +305,7 @@ public class PlafondController {
 
   /** Restore soft deleted plafond Only accessible by ADMIN */
   @PatchMapping("/{id}/restore")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<ApiResponse<PlafondResponse>> restorePlafond(@PathVariable Long id) {
     try {
       PlafondResponse plafond = plafondService.restorePlafond(id);

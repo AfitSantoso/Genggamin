@@ -39,6 +39,12 @@ public class Loan {
   @Column(name = "purpose", length = 500)
   private String purpose;
 
+  @Column(name = "latitude", precision = 9, scale = 6)
+  private BigDecimal latitude;
+
+  @Column(name = "longitude", precision = 9, scale = 6)
+  private BigDecimal longitude;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   @Builder.Default

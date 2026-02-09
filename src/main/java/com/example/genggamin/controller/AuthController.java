@@ -4,17 +4,17 @@ package com.example.genggamin.controller;
 import com.example.genggamin.dto.ApiResponse;
 import com.example.genggamin.dto.CreateUserRequest;
 import com.example.genggamin.dto.ForgotPasswordRequest;
+import com.example.genggamin.dto.GoogleLoginRequest;
 import com.example.genggamin.dto.LoginRequest;
 import com.example.genggamin.dto.LoginResponse;
 import com.example.genggamin.dto.ResetPasswordRequest;
 import com.example.genggamin.dto.UserResponse;
 import com.example.genggamin.entity.User;
 import com.example.genggamin.security.JwtUtil;
+import com.example.genggamin.service.GoogleAuthService;
 import com.example.genggamin.service.PasswordResetService;
 import com.example.genggamin.service.TokenBlacklistService;
 import com.example.genggamin.service.UserService;
-import com.example.genggamin.service.GoogleAuthService;
-import com.example.genggamin.dto.GoogleLoginRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -58,6 +58,7 @@ public class AuthController {
               .collect(java.util.stream.Collectors.toSet());
       String token = jwtUtil.generateToken(user.getUsername(), roles);
       res.setToken(token);
+      res.setExpiresAt(jwtUtil.getExpirationTimeFromToken(token));
       return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", res));
     } catch (RuntimeException e) {
       return ResponseEntity.status(401).body(new ApiResponse<>(false, e.getMessage(), null));
@@ -65,17 +66,20 @@ public class AuthController {
   }
 
   @PostMapping("/google")
-  public ResponseEntity<ApiResponse<LoginResponse>> googleLogin(@RequestBody GoogleLoginRequest req) {
+  public ResponseEntity<ApiResponse<LoginResponse>> googleLogin(
+      @RequestBody GoogleLoginRequest req) {
     try {
       LoginResponse res = googleAuthService.loginWithGoogle(req.getIdToken(), req.getFcmToken());
       return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", res));
     } catch (Exception e) {
-      return ResponseEntity.status(401).body(new ApiResponse<>(false, "Google login failed: " + e.getMessage(), null));
+      return ResponseEntity.status(401)
+          .body(new ApiResponse<>(false, "Google login failed: " + e.getMessage(), null));
     }
   }
 
   @PostMapping("/register")
-  public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> register(@RequestBody CreateUserRequest req) {
+  public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> register(
+      @RequestBody CreateUserRequest req) {
     try {
       User u = userService.register(req);
       return ResponseEntity.status(201)
@@ -116,8 +120,7 @@ public class AuthController {
             new ApiResponse<>(true, "Logout successful. Token has been invalidated.", null));
       } else {
         return ResponseEntity.badRequest()
-            .body(
-                new ApiResponse<>(false, "Authorization header is missing or invalid", null));
+            .body(new ApiResponse<>(false, "Authorization header is missing or invalid", null));
       }
     } catch (Exception e) {
       return ResponseEntity.status(500)
@@ -127,7 +130,8 @@ public class AuthController {
 
   /** Endpoint untuk forgot password User request reset password dengan email */
   @PostMapping("/forgot-password")
-  public ResponseEntity<ApiResponse<java.util.Map<String, String>>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+  public ResponseEntity<ApiResponse<java.util.Map<String, String>>> forgotPassword(
+      @RequestBody ForgotPasswordRequest request) {
     try {
       String token = passwordResetService.processForgotPassword(request.getEmail());
       return ResponseEntity.ok(
@@ -136,8 +140,7 @@ public class AuthController {
               "Link reset password telah dikirim ke email Anda. Silakan cek inbox atau spam folder.",
               java.util.Map.of("token", token)));
     } catch (RuntimeException e) {
-      return ResponseEntity.badRequest()
-          .body(new ApiResponse<>(false, e.getMessage(), null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 
@@ -150,17 +153,15 @@ public class AuthController {
    * baru
    */
   @PostMapping("/reset-password")
-  public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
+  public ResponseEntity<ApiResponse<Void>> resetPassword(
+      @RequestBody ResetPasswordRequest request) {
     try {
       passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
       return ResponseEntity.ok(
           new ApiResponse<>(
-              true,
-              "Password berhasil direset. Silakan login dengan password baru Anda.",
-              null));
+              true, "Password berhasil direset. Silakan login dengan password baru Anda.", null));
     } catch (RuntimeException e) {
-      return ResponseEntity.badRequest()
-          .body(new ApiResponse<>(false, e.getMessage(), null));
+      return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
     }
   }
 

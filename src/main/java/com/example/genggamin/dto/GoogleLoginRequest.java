@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class GoogleLoginRequest {
-    private String idToken;
-    private String fcmToken;
+  private String idToken;
+  private String fcmToken;
 }

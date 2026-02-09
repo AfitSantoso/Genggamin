@@ -1,7 +1,6 @@
 package com.example.genggamin.controller;
 
 import com.example.genggamin.dto.ApiResponse;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +32,6 @@ public class HealthController {
     Map<String, String> response = new HashMap<>();
     response.put("status", "UP");
     response.put("timestamp", LocalDateTime.now().toString());
-    return ResponseEntity.ok(
-        new ApiResponse<>(true, "Application is healthy", response));
+    return ResponseEntity.ok(new ApiResponse<>(true, "Application is healthy", response));
   }
 }

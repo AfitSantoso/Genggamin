@@ -292,7 +292,7 @@ public class LoanController {
 
   /** ADMIN: Get all loans */
   @GetMapping("/all")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<ApiResponse<List<LoanResponse>>> getAllLoans() {
     try {
       List<LoanResponse> loans = loanService.getAllLoans();

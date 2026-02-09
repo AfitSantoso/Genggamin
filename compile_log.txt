@@ -1,0 +1,100 @@
+﻿mvn : Picked up JAVA_TOOL_OPT
+IONS: -Dfile.encoding=UTF-8
+At line:1 char:49
++ ... v:JAVA_TOOL_OPTIONS="-D
+file.encoding=UTF-8"; mvn com
+pile 2>&1 | Out-F ...
++                            
+                      ~~~~~~~
+~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Picked   
+  up JAVA_....encoding=UTF   
+ -8:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.example:genggamin >------------------------
+[INFO] Building genggamin 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ genggamin ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ genggamin ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- spotless:2.43.0:check (default) @ genggamin ---
+[INFO] Spotless.Java is keeping 88 files clean - 15 needs changes to be clean, 0 were already clean, 73 were skipped because caching determined they were already clean
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.784 s
+[INFO] Finished at: 2026-02-05T11:05:18+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal com.diffplug.spotless:spotless-maven-plugin:2.43.0:check (default) on project genggamin: The following files had format violations:
+[ERROR]     src\main\java\com\example\genggamin\config\FirebaseConfig.java
+[ERROR]         @@ -21,23 +21,24 @@
+[ERROR]          ÀÀpublicÀvoidÀinitialize()À{
+[ERROR]          ÀÀÀÀtryÀ{
+[ERROR]          ÀÀÀÀÀÀifÀ(FirebaseApp.getApps().isEmpty())À{
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀInputStreamÀserviceAccountÀ=Ànull;
+[ERROR]         +ÀÀÀÀÀÀÀÀInputStreamÀserviceAccountÀ=Ànull;
+[ERROR]         +ÀÀÀÀÀÀÀÀtryÀ{
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀ//ÀTryÀtoÀloadÀfromÀclasspath
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀserviceAccountÀ=ÀnewÀClassPathResource(firebaseConfigPath).getInputStream();
+[ERROR]         +ÀÀÀÀÀÀÀÀ}ÀcatchÀ(ExceptionÀe)À{
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀ//ÀTryÀtoÀloadÀfromÀfileÀsystem
+[ERROR]          ÀÀÀÀÀÀÀÀÀÀtryÀ{
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀ//ÀTryÀtoÀloadÀfromÀclasspath
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀserviceAccountÀ=ÀnewÀClassPathResource(firebaseConfigPath).getInputStream();
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀ}ÀcatchÀ(ExceptionÀe)À{
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀ//ÀTryÀtoÀloadÀfromÀfileÀsystem
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀtryÀ{
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀserviceAccountÀ=ÀnewÀFileInputStream(firebaseConfigPath);
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀ}ÀcatchÀ(ExceptionÀex)À{
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀSystem.out.println("FirebaseÀconfigÀfileÀnotÀfound.ÀPushÀnotificationsÀwillÀnotÀwork.");
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀreturn;
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀÀ}
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀÀÀserviceAccountÀ=ÀnewÀFileInputStream(firebaseConfigPath);
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀ}ÀcatchÀ(ExceptionÀex)À{
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀÀÀSystem.out.println("FirebaseÀconfigÀfileÀnotÀfound.ÀPushÀnotificationsÀwillÀnotÀwork.");
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀÀÀreturn;
+[ERROR]          ÀÀÀÀÀÀÀÀÀÀ}
+[ERROR]         +ÀÀÀÀÀÀÀÀ}
+[ERROR]          
+[ERROR]         -ÀÀÀÀÀÀÀÀFirebaseOptionsÀoptionsÀ=ÀFirebaseOptions.builder()
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀ.setCredentials(GoogleCredentials.fromStream(serviceAccount))
+[ERROR]         -ÀÀÀÀÀÀÀÀÀÀÀÀ.build();
+[ERROR]         +ÀÀÀÀÀÀÀÀFirebaseOptionsÀoptionsÀ=
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀÀÀFirebaseOptions.builder()
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀ.setCredentials(GoogleCredentials.fromStream(serviceAccount))
+[ERROR]         +ÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀ.build();
+[ERROR]          
+[ERROR]          ÀÀÀÀÀÀÀÀFirebaseApp.initializeApp(options);
+[ERROR]          ÀÀÀÀÀÀÀÀSystem.out.println("FirebaseÀapplicationÀhasÀbeenÀinitialized");
+[ERROR]     src\main\java\com\example\genggamin\config\GoogleConfig.java
+[ERROR]         @@ -3,22 +3,21 @@
+[ERROR]          importÀcom.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+[ERROR]          importÀcom.google.api.client.http.javanet.NetHttpTransport;
+[ERROR]          importÀcom.google.api.client.json.gson.GsonFactory;
+[ERROR]         +importÀjava.util.Collections;
+[ERROR]          importÀorg.springframework.beans.factory.annotation.Value;
+[ERROR]          importÀorg.springframework.context.annotation.Bean;
+[ERROR]          importÀorg.springframework.context.annotation.Configuration;
+[ERROR]          
+[ERROR]     ... (23 more lines that didn't fit)
+[ERROR] Violations also present in 13 other files.
+[ERROR] Run 'mvn spotless:apply' to fix these violations.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

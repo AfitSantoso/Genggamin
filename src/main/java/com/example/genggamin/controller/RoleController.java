@@ -1,7 +1,6 @@
 package com.example.genggamin.controller;
 
 import com.example.genggamin.dto.ApiResponse;
-
 import com.example.genggamin.entity.Role;
 import com.example.genggamin.service.RoleService;
 import java.util.List;
@@ -22,8 +21,7 @@ public class RoleController {
   @GetMapping
   public ResponseEntity<ApiResponse<List<Role>>> getAllRoles() {
     List<Role> roles = roleService.getAllRoles();
-    return ResponseEntity.ok(
-        new ApiResponse<>(true, "Roles retrieved successfully", roles));
+    return ResponseEntity.ok(new ApiResponse<>(true, "Roles retrieved successfully", roles));
   }
 
   @PostMapping
