@@ -60,7 +60,6 @@ services:
   app:
     image: afit7/genggamin:latest
     container_name: genggamin-app
-    restart: always
     env_file:
       - .env
     ports:
