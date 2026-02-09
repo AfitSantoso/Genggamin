@@ -241,7 +241,7 @@ class AuthControllerTest {
     GoogleLoginRequest googleRequest = new GoogleLoginRequest();
     googleRequest.setIdToken(idToken);
 
-    when(googleAuthService.loginWithGoogle(idToken)).thenReturn(loginResponse);
+    when(googleAuthService.loginWithGoogle(idToken, null)).thenReturn(loginResponse);
 
     // Act & Assert
     mockMvc
@@ -262,7 +262,7 @@ class AuthControllerTest {
     GoogleLoginRequest googleRequest = new GoogleLoginRequest();
     googleRequest.setIdToken(idToken);
 
-    when(googleAuthService.loginWithGoogle(idToken))
+    when(googleAuthService.loginWithGoogle(idToken, null))
         .thenThrow(new RuntimeException("Invalid ID token."));
 
     // Act & Assert
