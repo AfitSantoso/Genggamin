@@ -7,12 +7,16 @@ import jakarta.annotation.PostConstruct;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
 @Configuration
 public class FirebaseConfig {
+
+  private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);
 
   @Value("${firebase.config.path:firebase-service-account.json}")
   private String firebaseConfigPath;
@@ -30,7 +34,7 @@ public class FirebaseConfig {
           try {
             serviceAccount = new FileInputStream(firebaseConfigPath);
           } catch (Exception ex) {
-            System.out.println("Firebase config file not found. Push notifications will not work.");
+            logger.warn("Firebase config file not found. Push notifications will not work.");
             return;
           }
         }
@@ -41,10 +45,10 @@ public class FirebaseConfig {
                 .build();
 
         FirebaseApp.initializeApp(options);
-        System.out.println("Firebase application has been initialized");
+        logger.info("Firebase application has been initialized");
       }
     } catch (IOException e) {
-      System.err.println("Error initializing Firebase: " + e.getMessage());
+      logger.error("Error initializing Firebase: {}", e.getMessage());
     }
   }
 }

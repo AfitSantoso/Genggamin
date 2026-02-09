@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -12,6 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FileStorageService {
+
+  private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
 
   private final Path fileStorageLocation;
 
@@ -57,6 +61,28 @@ public class FileStorageService {
     }
   }
 
+  public String storeFile(byte[] content, String targetFilename) {
+    // Normalize file name
+    String originalFileName = StringUtils.cleanPath(targetFilename);
+
+    try {
+      // Check if the file's name contains invalid characters
+      if (originalFileName.contains("..")) {
+        throw new RuntimeException(
+            "Sorry! Filename contains invalid path sequence " + originalFileName);
+      }
+
+      // Copy file to the target location (Replacing existing file with the same name)
+      Path targetLocation = this.fileStorageLocation.resolve(originalFileName);
+      Files.write(targetLocation, content);
+
+      return targetLocation.toString();
+    } catch (IOException ex) {
+      throw new RuntimeException(
+          "Could not store file " + targetFilename + ". Please try again!", ex);
+    }
+  }
+
   public void deleteFile(String filePath) {
     if (filePath == null || filePath.isEmpty()) {
       return;
@@ -68,7 +94,7 @@ public class FileStorageService {
       // Log warning but don't stop the process? Or throw?
       // Since it's cleanup, maybe just existing silently or logging is fine.
       // For now let's just print stack trace or ignore strictly to avoid blocking update
-      System.err.println("Could not delete file: " + filePath + ". Error: " + ex.getMessage());
+      logger.error("Could not delete file: {}. Error: {}", filePath, ex.getMessage());
     }
   }
 }
