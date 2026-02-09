@@ -23,4 +23,5 @@ public class CustomerRequest {
   private String accountNumber;
   private String accountHolderName;
   private EmergencyContactRequest emergencyContact;
+  private Boolean deletePayslip;
 }

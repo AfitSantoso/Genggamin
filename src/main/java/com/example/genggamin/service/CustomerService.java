@@ -56,8 +56,8 @@ public class CustomerService {
     Customer customer = isNew ? new Customer() : existingCustomer;
     updateCustomerEntity(customer, user, request); // Helper method to populate fields
 
-    // Handle File Uploads
-    handleFileUploads(customer, user, request.getNik(), fileKtp, fileSelfie, filePayslip);
+    // Handle File Uploads and Deletions
+    handleFileUploads(customer, user, request, fileKtp, fileSelfie, filePayslip);
 
     // Validate if any mandatory image path is missing (double check)
     if (isNew && (customer.getKtpImagePath() == null || customer.getSelfieImagePath() == null)) {
@@ -140,12 +140,12 @@ public class CustomerService {
   private void handleFileUploads(
       Customer customer,
       User user,
-      String nik,
+      CustomerRequest request,
       MultipartFile fileKtp,
       MultipartFile fileSelfie,
       MultipartFile filePayslip) {
     String sanitizedFullName = user.getFullName().replaceAll("\\s+", "_");
-    String fileBaseName = sanitizedFullName + "-" + nik;
+    String fileBaseName = sanitizedFullName + "-" + request.getNik();
 
     if (fileKtp != null && !fileKtp.isEmpty()) {
       // Delete old file if exists
@@ -163,7 +163,14 @@ public class CustomerService {
       customer.setSelfieImagePath(selfiePath);
     }
 
-    if (filePayslip != null && !filePayslip.isEmpty()) {
+    // Handle payslip: Check for deletion flag first
+    if (Boolean.TRUE.equals(request.getDeletePayslip())) {
+      // Delete the existing payslip file from storage
+      fileStorageService.deleteFile(customer.getPayslipImagePath());
+      // Set payslipImagePath to null in the entity (will be persisted to database)
+      customer.setPayslipImagePath(null);
+    } else if (filePayslip != null && !filePayslip.isEmpty()) {
+      // Only process new upload if deletePayslip is not true
       // Delete old file if exists
       fileStorageService.deleteFile(customer.getPayslipImagePath());
       String payslipPath =
