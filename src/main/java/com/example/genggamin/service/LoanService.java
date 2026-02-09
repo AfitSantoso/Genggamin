@@ -28,11 +28,15 @@ import com.example.genggamin.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LoanService {
+
+  private static final Logger logger = LoggerFactory.getLogger(LoanService.class);
 
   private final LoanRepository loanRepository;
   private final UserRepository userRepository;
@@ -384,7 +388,7 @@ public class LoanService {
         }
       } catch (Exception e) {
         // Log error (or use logger if available in class)
-        System.err.println("Failed to send rejection email: " + e.getMessage());
+        logger.error("Failed to send rejection email: {}", e.getMessage());
       }
     }
 
@@ -524,7 +528,7 @@ public class LoanService {
         }
       }
     } catch (Exception e) {
-      System.err.println("Failed to send approval/rejection email: " + e.getMessage());
+      logger.error("Failed to send approval/rejection email: {}", e.getMessage());
     }
 
     return LoanResponse.fromEntity(savedLoan);
@@ -626,7 +630,7 @@ public class LoanService {
             request.getBankAccount());
       }
     } catch (Exception e) {
-      System.err.println("Failed to send disbursement email: " + e.getMessage());
+      logger.error("Failed to send disbursement email: {}", e.getMessage());
     }
 
     // Notifications

@@ -110,3 +110,75 @@ jobs:
           path: target/*.jar
           retention-days: 7
           if-no-files-found: warn
+
+  docker-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ITEM_PASSWORD }}
+          
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/genggamin:latest
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: docker-push
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "docker-compose.yml"
+          target: ${{ secrets.VPS_PROJECT_DIR }}
+
+      - name: Executing remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ${{ secrets.VPS_PROJECT_DIR }}
+            
+            # Create Firebase Config file from Secret
+            echo '${{ secrets.FIREBASE_CONFIG_JSON }}' > firebase-service-account.json
+            
+            # Append Google Client ID to .env if not exists (simple append for now)
+            # Better: Create a .env.secrets and include it, or just rely on user setting it.
+            # But user asked me to help deploy.
+            # Let's write the variables to .env to be safe.
+            # Note: This might overwrite existing .env content or duplicate keys if run repeatedly.
+            # Safe approach: Just assume user sets these in VPS env or use a specific file.
+            # BUT, to make it work "now", I'll just export them for the session? No, docker compose needs them.
+            # I will instruct user to add GOOGLE_CLIENT_ID to their VPS .env file.
+            # For Firebase JSON, I will write it because it's a file content.
+            
+            docker compose pull
+            docker compose up -d
