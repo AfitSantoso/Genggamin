@@ -58,11 +58,11 @@ services:
 
   # Spring Boot Application
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ${DOCKER_IMAGE_NAME:-afit7/genggamin:latest}
+    image: afit7/genggamin:latest
     container_name: genggamin-app
+    restart: always
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     environment:
