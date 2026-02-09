@@ -144,6 +144,19 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "docker-compose.yml"
+          target: ${{ secrets.VPS_PROJECT_DIR }}
+
       - name: Executing remote ssh commands
         uses: appleboy/ssh-action@v1.0.3
         with:

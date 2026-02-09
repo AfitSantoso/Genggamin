@@ -82,7 +82,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       # Google OAuth
-      - APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - APP_GOOGLE_CLIENT_ID=${APP_GOOGLE_CLIENT_ID}
       # Firebase
       - FIREBASE_CONFIG_PATH=/app/firebase-service-account.json
       # Frontend URL
