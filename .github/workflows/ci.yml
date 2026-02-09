@@ -153,5 +153,19 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd ${{ secrets.VPS_PROJECT_DIR }}
+            
+            # Create Firebase Config file from Secret
+            echo '${{ secrets.FIREBASE_CONFIG_JSON }}' > firebase-service-account.json
+            
+            # Append Google Client ID to .env if not exists (simple append for now)
+            # Better: Create a .env.secrets and include it, or just rely on user setting it.
+            # But user asked me to help deploy.
+            # Let's write the variables to .env to be safe.
+            # Note: This might overwrite existing .env content or duplicate keys if run repeatedly.
+            # Safe approach: Just assume user sets these in VPS env or use a specific file.
+            # BUT, to make it work "now", I'll just export them for the session? No, docker compose needs them.
+            # I will instruct user to add GOOGLE_CLIENT_ID to their VPS .env file.
+            # For Firebase JSON, I will write it because it's a file content.
+            
             docker compose pull
             docker compose up -d
