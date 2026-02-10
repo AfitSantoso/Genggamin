@@ -54,4 +54,4 @@ app:
   frontend:
     url: http://localhost:4200 # URL frontend untuk link reset password di email
   google:
-    client-id: "196871791222-5opu1hhd733juuvokltoq6jr3lidppia.apps.googleusercontent.com"
+    client-id: "926562784828-316arit97i791egpso2t8qk9muuqq4nf.apps.googleusercontent.com"
