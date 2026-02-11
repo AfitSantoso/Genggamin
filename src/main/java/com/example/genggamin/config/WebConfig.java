@@ -19,18 +19,5 @@ public class WebConfig implements WebMvcConfigurer {
     registry.addResourceHandler("/uploads/kyc/**").addResourceLocations("file:" + uploadDir + "/");
   }
 
-  @Override
-  public void addCorsMappings(CorsRegistry registry) {
-    registry
-        .addMapping("/**")
-        .allowedOrigins(
-            "http://localhost:4200",
-            "https://genggamin-bnmfqx7iu-afitsantosos-projects.vercel.app/",
-            "https://*.vercel.app" // Untuk semua deployment Vercel
-            )
-        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-        .allowedHeaders("*")
-        .allowCredentials(true)
-        .maxAge(3600);
-  }
+
 }
