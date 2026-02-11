@@ -2,7 +2,6 @@ package com.example.genggamin.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -18,6 +17,4 @@ public class WebConfig implements WebMvcConfigurer {
     // Maps /uploads/kyc/** ke file system lokal
     registry.addResourceHandler("/uploads/kyc/**").addResourceLocations("file:" + uploadDir + "/");
   }
-
-
 }
