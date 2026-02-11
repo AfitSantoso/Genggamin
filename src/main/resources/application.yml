@@ -52,6 +52,6 @@ app:
     secret: "genggamin-secret-key-change-this-in-production-with-stronger-key"
     expiration: 86400000 # 24 hours in milliseconds
   frontend:
-    url: http://localhost:4200 # URL frontend untuk link reset password di email
+    url: https://genggamin-fe.vercel.app/ # URL frontend untuk link reset password di email
   google:
     client-id: "926562784828-316arit97i791egpso2t8qk9muuqq4nf.apps.googleusercontent.com"
