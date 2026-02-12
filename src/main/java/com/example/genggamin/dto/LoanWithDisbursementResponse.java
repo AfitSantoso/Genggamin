@@ -17,6 +17,8 @@ public class LoanWithDisbursementResponse {
   private LocalDateTime submissionDate;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+  private BigDecimal latitude;
+  private BigDecimal longitude;
 
   // Disbursement fields
   private Long disbursementId;
@@ -211,5 +213,21 @@ public class LoanWithDisbursementResponse {
 
   public void setApprovedAt(LocalDateTime approvedAt) {
     this.approvedAt = approvedAt;
+  }
+
+  public BigDecimal getLatitude() {
+    return latitude;
+  }
+
+  public void setLatitude(BigDecimal latitude) {
+    this.latitude = latitude;
+  }
+
+  public BigDecimal getLongitude() {
+    return longitude;
+  }
+
+  public void setLongitude(BigDecimal longitude) {
+    this.longitude = longitude;
   }
 }

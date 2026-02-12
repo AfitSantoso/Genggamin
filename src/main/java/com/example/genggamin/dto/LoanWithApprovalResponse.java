@@ -26,6 +26,8 @@ public class LoanWithApprovalResponse {
   private LocalDateTime submissionDate;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+  private BigDecimal latitude;
+  private BigDecimal longitude;
 
   // Approval data
   private Long approvalId;
@@ -47,6 +49,8 @@ public class LoanWithApprovalResponse {
         .submissionDate(loan.getSubmittedAt())
         .createdAt(loan.getCreatedAt())
         .updatedAt(loan.getUpdatedAt())
+        .latitude(loan.getLatitude())
+        .longitude(loan.getLongitude())
         .approvalId(approval.getId())
         .approvedBy(approval.getApprovedBy())
         .approvalStatus(approval.getApprovalStatus())

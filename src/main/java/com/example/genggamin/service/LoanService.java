@@ -674,6 +674,8 @@ public class LoanService {
               response.setSubmissionDate(loan.getSubmittedAt());
               response.setCreatedAt(loan.getCreatedAt());
               response.setUpdatedAt(loan.getUpdatedAt());
+              response.setLatitude(loan.getLatitude());
+              response.setLongitude(loan.getLongitude());
 
               // Set disbursement fields
               response.setDisbursementId(disbursement.getId());

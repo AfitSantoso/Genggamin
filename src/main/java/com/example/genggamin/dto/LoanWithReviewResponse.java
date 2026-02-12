@@ -26,6 +26,8 @@ public class LoanWithReviewResponse {
   private LocalDateTime submissionDate;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+  private BigDecimal latitude;
+  private BigDecimal longitude;
 
   // Review data
   private Long reviewId;
@@ -47,6 +49,8 @@ public class LoanWithReviewResponse {
         .submissionDate(loan.getSubmittedAt())
         .createdAt(loan.getCreatedAt())
         .updatedAt(loan.getUpdatedAt())
+        .latitude(loan.getLatitude())
+        .longitude(loan.getLongitude())
         .reviewId(review.getId())
         .reviewedBy(review.getReviewedBy())
         .reviewNotes(review.getReviewNotes())
