@@ -7,7 +7,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
@@ -55,3 +55,12 @@ app:
     url: https://genggamin-fe.vercel.app/ # URL frontend untuk link reset password di email
   google:
     client-id: "926562784828-316arit97i791egpso2t8qk9muuqq4nf.apps.googleusercontent.com"
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha

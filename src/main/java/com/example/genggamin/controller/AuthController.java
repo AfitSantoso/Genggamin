@@ -130,15 +130,16 @@ public class AuthController {
 
   /** Endpoint untuk forgot password User request reset password dengan email */
   @PostMapping("/forgot-password")
-  public ResponseEntity<ApiResponse<java.util.Map<String, String>>> forgotPassword(
+  public ResponseEntity<ApiResponse<Void>> forgotPassword(
       @RequestBody ForgotPasswordRequest request) {
     try {
-      String token = passwordResetService.processForgotPassword(request.getEmail());
+      passwordResetService.processForgotPassword(request.getEmail());
+      // Token is NOT returned in response for security — it is sent exclusively via email
       return ResponseEntity.ok(
           new ApiResponse<>(
               true,
               "Link reset password telah dikirim ke email Anda. Silakan cek inbox atau spam folder.",
-              java.util.Map.of("token", token)));
+              null));
     } catch (RuntimeException e) {
       return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
     }

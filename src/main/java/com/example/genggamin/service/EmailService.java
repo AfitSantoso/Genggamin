@@ -27,6 +27,14 @@ public class EmailService {
     this.mailSender = mailSender;
   }
 
+  /** Mask email for secure logging: show first 2 chars + ***@domain */
+  private String maskEmail(String email) {
+    if (email == null || !email.contains("@")) return "***";
+    int atIndex = email.indexOf('@');
+    String prefix = email.substring(0, Math.min(2, atIndex));
+    return prefix + "***" + email.substring(atIndex);
+  }
+
   /**
    * Mengirim email reset password
    *
@@ -45,14 +53,14 @@ public class EmailService {
 
       String resetUrl = frontendUrl + "/reset-password?token=" + token;
 
-      String htmlContent = buildPasswordResetEmailTemplate(username, resetUrl, token);
+      String htmlContent = buildPasswordResetEmailTemplate(username, resetUrl);
       helper.setText(htmlContent, true);
 
       mailSender.send(message);
-      log.info("Password reset email sent successfully to: {}", toEmail);
+      log.info("Password reset email sent successfully to: {}", maskEmail(toEmail));
 
     } catch (MessagingException e) {
-      log.error("Failed to send password reset email to: {}", toEmail, e);
+      log.error("Failed to send password reset email to: {}", maskEmail(toEmail), e);
       throw new RuntimeException("Failed to send password reset email", e);
     }
   }
@@ -77,10 +85,10 @@ public class EmailService {
       helper.setText(htmlContent, true);
 
       mailSender.send(message);
-      log.info("Registration confirmation email sent to: {}", toEmail);
+      log.info("Registration confirmation email sent to: {}", maskEmail(toEmail));
 
     } catch (MessagingException e) {
-      log.error("Failed to send registration email to: {}", toEmail, e);
+      log.error("Failed to send registration email to: {}", maskEmail(toEmail), e);
       // Don't throw exception to avoid rollback of registration
     }
   }
@@ -107,10 +115,10 @@ public class EmailService {
       helper.setText(htmlContent, true);
 
       mailSender.send(message);
-      log.info("Loan approved email sent to: {}", toEmail);
+      log.info("Loan approved email sent to: {}", maskEmail(toEmail));
 
     } catch (MessagingException e) {
-      log.error("Failed to send loan approved email to: {}", toEmail, e);
+      log.error("Failed to send loan approved email to: {}", maskEmail(toEmail), e);
     }
   }
 
@@ -135,10 +143,10 @@ public class EmailService {
       helper.setText(htmlContent, true);
 
       mailSender.send(message);
-      log.info("Loan rejected email sent to: {}", toEmail);
+      log.info("Loan rejected email sent to: {}", maskEmail(toEmail));
 
     } catch (MessagingException e) {
-      log.error("Failed to send loan rejected email to: {}", toEmail, e);
+      log.error("Failed to send loan rejected email to: {}", maskEmail(toEmail), e);
     }
   }
 
@@ -169,10 +177,10 @@ public class EmailService {
       helper.setText(htmlContent, true);
 
       mailSender.send(message);
-      log.info("Loan disbursed email sent to: {}", toEmail);
+      log.info("Loan disbursed email sent to: {}", maskEmail(toEmail));
 
     } catch (MessagingException e) {
-      log.error("Failed to send loan disbursed email to: {}", toEmail, e);
+      log.error("Failed to send loan disbursed email to: {}", maskEmail(toEmail), e);
     }
   }
 
@@ -307,7 +315,7 @@ public class EmailService {
   }
 
   /** Build HTML template untuk email reset password */
-  private String buildPasswordResetEmailTemplate(String username, String resetUrl, String token) {
+  private String buildPasswordResetEmailTemplate(String username, String resetUrl) {
     return """
             <!DOCTYPE html>
             <html>
@@ -346,21 +354,15 @@ public class EmailService {
                         <p class="warning">⚠️ Link ini hanya berlaku selama 1 jam.</p>
 
                         <p>Jika Anda tidak melakukan permintaan reset password, abaikan email ini. Password Anda tidak akan berubah.</p>
-
-                        <hr>
-
-                        <p><strong>Token untuk testing API:</strong></p>
-                        <div class="token">%s</div>
-                        <p style="font-size: 12px; color: #666;">Gunakan token ini di endpoint: POST /auth/reset-password</p>
                     </div>
                     <div class="footer">
-                        <p>© 2025 Genggamin Loan System. All rights reserved.</p>
+                        <p>© 2026 Genggamin Loan System. All rights reserved.</p>
                         <p>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</p>
                     </div>
                 </div>
             </body>
             </html>
             """
-        .formatted(username, resetUrl, resetUrl, token);
+        .formatted(username, resetUrl, resetUrl);
   }
 }

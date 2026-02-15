@@ -27,7 +27,7 @@ public class NotificationService {
 
   // Simulate Email Service
   private void sendEmail(User user, String title, String message) {
-    log.info("[EMAIL] To: {}, Title: {}, Body: {}", user.getEmail(), title, message);
+    log.info("[EMAIL] To UserID: {}, Title: {}", user.getId(), title);
   }
 
   // Simulate Push Notification Service (Firebase/OneSignal)

@@ -47,12 +47,14 @@ public class PasswordResetService {
    */
   @Transactional
   public String processForgotPassword(String email) {
-    // Cari user berdasarkan email
+    // Cari user berdasarkan email — generic message to prevent user enumeration
     User user =
         userRepository
             .findByEmail(email)
             .orElseThrow(
-                () -> new RuntimeException("User dengan email " + email + " tidak ditemukan"));
+                () ->
+                    new RuntimeException(
+                        "Jika email terdaftar, link reset password akan dikirim ke email Anda."));
 
     // Cek apakah user aktif
     if (!user.getIsActive()) {
@@ -74,13 +76,13 @@ public class PasswordResetService {
     resetToken.setUsed(false);
     tokenRepository.save(resetToken);
 
-    // Log token for debugging/development purposes (So we can test without real email)
-    log.info("GENERATED RESET TOKEN for user {}: {}", user.getUsername(), token);
+    // Token is never logged for security reasons
+    log.info("Password reset token generated for user ID: {}", user.getId());
 
     // Kirim email
     try {
       emailService.sendPasswordResetEmail(user.getEmail(), token, user.getUsername());
-      log.info("Password reset token generated and email sent for user: {}", user.getUsername());
+      log.info("Password reset email sent for user ID: {}", user.getId());
     } catch (Exception e) {
       // In development/testing, email sending might fail. We log the error but don't fail the
       // request.
@@ -136,7 +138,7 @@ public class PasswordResetService {
     resetToken.setUsed(true);
     tokenRepository.save(resetToken);
 
-    log.info("Password successfully reset for user: {}", user.getUsername());
+    log.info("Password successfully reset for user ID: {}", user.getId());
   }
 
   /**

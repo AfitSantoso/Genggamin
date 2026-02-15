@@ -47,7 +47,15 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
-                        "/", "/auth/**", "/h2-console/**", "/uploads/**", "/api/health", "/health")
+                        "/",
+                        "/auth/**",
+                        "/h2-console/**",
+                        "/uploads/**",
+                        "/api/health",
+                        "/health",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html")
                     .permitAll()
                     // Allow public access to GET plafonds endpoints
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/plafonds/**")
